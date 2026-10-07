@@ -1,0 +1,81 @@
+/* Accessibility and small-screen corrections; the design itself lives in reference.css. */
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+:focus-visible { outline: 2px solid #c8a94d; outline-offset: 3px; }
+/* Existing transactional forms use high-contrast dark tokens. */
+.legacy-ui.reference-dialogs .modal-backdrop-custom { background: rgba(0,0,0,0.85) !important; backdrop-filter: blur(6px); display:flex; align-items:center; justify-content:center; }
+.legacy-ui.reference-dialogs .detail-drawer { width: min(100%, 480px) !important; max-width:480px; padding:32px !important; background:#120f0d !important; border:0 !important; border-left:1px solid #231e1a !important; box-shadow: -12px 0 36px rgba(0,0,0,0.6) !important; color:#ede7dc !important; }
+.legacy-ui.reference-dialogs .detail-drawer h2 { font-family:'Open Sans',system-ui,sans-serif; font-size:24px !important; font-weight:700; line-height:32px; letter-spacing:normal; color:#ede7dc !important; }
+.legacy-ui.reference-dialogs .detail-drawer .eyebrow { color:#c8a94d !important; font:700 11px/16px 'Open Sans',sans-serif; letter-spacing:.25em; margin-bottom:4px; text-transform:uppercase; }
+.legacy-ui.reference-dialogs .detail-drawer .row { display:block; margin:0; }
+.legacy-ui.reference-dialogs .detail-drawer .row > * { width:100%; padding:0; margin:0 0 20px; }
+.legacy-ui.reference-dialogs .form-label, .legacy-ui.reference-auth .form-label { display:block; color:#b5a99b !important; font:600 12px/16px 'Open Sans',sans-serif; text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px; }
+.legacy-ui.reference-dialogs .form-control, .legacy-ui.reference-dialogs .form-select,
+.legacy-ui.reference-auth .form-control { border:1px solid #2b2520 !important; background:#0b0907 !important; color:#ede7dc !important; border-radius:6px; font:14px/20px 'Open Sans',sans-serif; padding:12px 16px; min-height:46px; box-shadow:none !important; }
+.legacy-ui.reference-dialogs .form-control:focus, .legacy-ui.reference-dialogs .form-select:focus,
+.legacy-ui.reference-auth .form-control:focus { border-color:#c8a94d !important; outline:none !important; }
+.legacy-ui.reference-dialogs .btn-accent, .legacy-ui.reference-auth .btn-accent { width:100%; border:0 !important; border-radius:6px; background:#c8a94d !important; color:#0b0907 !important; font:700 14px/20px 'Open Sans',sans-serif; padding:12px 20px; transition: background 0.2s; }
+.legacy-ui.reference-dialogs .btn-accent:hover, .legacy-ui.reference-auth .btn-accent:hover { background:#dfc477 !important; }
+.legacy-ui.reference-dialogs .form-text { color:#8c8275 !important; font-size:12px; }
+.legacy-ui.reference-dialogs .btn-close { filter:invert(1); opacity:.75; }
+
+/* Dialog order facts & summary */
+.legacy-ui.reference-dialogs .order-facts { background:#0b0907; border:1px solid #231e1a; border-radius:8px; padding:16px; margin-bottom:20px; display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.legacy-ui.reference-dialogs .order-facts div span { display:block; font-size:11px; color:#8c8275; font-family:'Open Sans',sans-serif; text-transform:uppercase; margin-bottom:2px; }
+.legacy-ui.reference-dialogs .order-facts div strong { font-size:13px; color:#ede7dc; font-weight:600; }
+.legacy-ui.reference-dialogs .email-delivery-panel { background:#0b0907 !important; border:1px solid #231e1a !important; border-radius:8px; padding:16px; margin-bottom:20px; color:#b5a99b; }
+.legacy-ui.reference-dialogs .email-delivery-panel .eyebrow { color:#c8a94d !important; font-size:10px; font-weight:700; text-transform:uppercase; margin-bottom:8px; }
+.legacy-ui.reference-dialogs .email-delivery-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #1a1613; }
+.legacy-ui.reference-dialogs .email-delivery-row:last-child { border-bottom:none; }
+.legacy-ui.reference-dialogs .email-delivery-row strong { color:#ede7dc; font-size:13px; display:block; }
+.legacy-ui.reference-dialogs .email-delivery-row small { color:#8c8275; font-size:11px; }
+.legacy-ui.reference-dialogs .summary-line { display:flex; justify-content:space-between; padding:6px 0; color:#b5a99b; font-size:13px; }
+.legacy-ui.reference-dialogs .summary-total { display:flex; justify-content:space-between; align-items:center; padding:14px 0 0; border-top:1px solid #231e1a; margin-top:12px; color:#ede7dc; font-size:16px; font-weight:700; }
+.legacy-ui.reference-dialogs .summary-total strong { color:#c8a94d; font-size:18px; font-family:'Open Sans',sans-serif; }
+
+/* Confirm Dialog styling */
+.legacy-ui.reference-dialogs .confirm-dialog { width:min(100%, 460px); max-width:460px; background:#120f0d !important; border:1px solid #231e1a !important; border-radius:12px !important; padding:28px !important; color:#ede7dc !important; box-shadow:0 24px 60px rgba(0,0,0,0.6) !important; margin:auto; }
+.legacy-ui.reference-dialogs .confirm-dialog h2 { font-size:18px !important; font-weight:700 !important; color:#ede7dc !important; margin-bottom:8px; }
+.legacy-ui.reference-dialogs .confirm-dialog p { font-size:13px !important; color:#b5a99b !important; line-height:1.5; margin-bottom:20px; }
+.legacy-ui.reference-dialogs .confirm-dialog-actions { display:flex; gap:12px; justify-content:flex-end; }
+.legacy-ui.reference-dialogs .confirm-dialog-actions .btn { border-radius:6px; font-weight:600; font-size:13px; padding:8px 18px; }
+.legacy-ui.reference-dialogs .confirm-dialog-actions .btn-light { background:#1a1613; color:#b5a99b; border:1px solid #2b2520; }
+.legacy-ui.reference-dialogs .confirm-dialog-actions .btn-light:hover { background:#2b2520; color:#ede7dc; }
+.legacy-ui.reference-dialogs .confirm-dialog-actions .btn-danger { background:#ef4444; color:#ffffff; border:none; }
+.legacy-ui.reference-dialogs .confirm-dialog-actions .btn-danger:hover { background:#dc2626; }
+.legacy-ui.reference-dialogs .confirm-dialog-actions .btn-ink { background:#c8a94d; color:#0b0907; border:none; }
+.legacy-ui.reference-dialogs .confirm-dialog-actions .btn-ink:hover { background:#dfc477; }
+
+.legacy-ui.reference-auth { min-height:100vh; display:flex; align-items:center; padding:104px 24px 48px; }
+.legacy-ui.reference-auth .auth-wrap { width:100%; max-width:448px; padding:0 !important; margin:auto; min-height:0; }
+.legacy-ui.reference-auth .auth-layout { display:block; }
+.legacy-ui.reference-auth .auth-editorial { display:none; }
+.legacy-ui.reference-auth .auth-card, .legacy-ui.reference-auth .verification-card { max-width:none; width:100%; border:1px solid #231e1a !important; border-radius:8px !important; background:#120f0d !important; padding:32px !important; box-shadow:none !important; color:#ede7dc; }
+.legacy-ui.reference-auth h1 { font:700 28px/34px Fraunces,Georgia,serif; letter-spacing:normal; margin-bottom:24px; color:#ede7dc; }
+.legacy-ui.reference-auth .eyebrow { font:700 11px/16px 'DM Mono',monospace; color:#c8a94d; letter-spacing:.2em; text-transform:uppercase; }
+.legacy-ui.reference-auth .auth-switch { margin-top:24px; font-size:12px; color:#8c8275; }
+.reference-admin > main { min-width:0; }
+@media(max-width:767px) {
+  .reference-cart-row { display:grid; grid-template-columns:64px 1fr 28px; gap:12px; }
+  .reference-cart-row > :first-child { grid-row:1 / 3; }
+  .reference-cart-row > :nth-child(2) { grid-column:2; }
+  .reference-cart-row > :nth-child(3) { grid-column:2; grid-row:2; justify-self:start; }
+  .reference-cart-row > :nth-child(4) { grid-column:2; grid-row:3; width:auto; text-align:left; }
+  .reference-cart-row > :last-child { grid-column:3; grid-row:1; }
+  .reference-admin { flex-direction:column; }
+  .reference-admin > aside { width:100%; border-right:0; border-bottom:1px solid #1e293b; }
+  .reference-admin > aside > div { padding:24px; }
+  .reference-admin > aside nav { display:flex; flex-wrap:wrap; gap:4px; padding:12px; }
+  .reference-admin .sidebar-link { width:auto; padding:10px 12px; }
+  .reference-admin > main > div { padding:24px 16px; }
+  .reference-admin main .overflow-hidden { overflow-x:auto; }
+  .reference-admin main .grid-cols-5, .reference-admin main .grid-cols-6 { min-width:650px; }
+  .reference-order-row { display:grid; grid-template-columns:40px 1fr; gap:12px; }
+  .reference-order-row > :nth-child(3) { grid-column:2; justify-self:start; }
+  .reference-order-row > :last-child { grid-column:2; width:auto; text-align:left; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal, .reveal-left, .reveal-scale { opacity: 1; transform: none; }
+  .grain::before { animation: none; }
+}

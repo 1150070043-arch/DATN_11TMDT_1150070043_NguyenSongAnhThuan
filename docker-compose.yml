@@ -1,0 +1,344 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${SQLSERVER_SA_PASSWORD:?Set SQLSERVER_SA_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+    networks: [baseline, secure]
+
+  mailpit:
+    image: axllent/mailpit:v1.31.1
+    environment:
+      MP_DATABASE: /data/mailpit.db
+      MP_MAX_MESSAGES: 1000
+    ports:
+      - "127.0.0.1:8025:8025"
+      - "127.0.0.1:1025:1025"
+    volumes:
+      - mailpit-data:/data
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    networks: [secure]
+
+  mailpit-baseline:
+    image: axllent/mailpit:v1.31.1
+    environment:
+      MP_DATABASE: /data/mailpit.db
+      MP_MAX_MESSAGES: 1000
+    ports:
+      - "127.0.0.1:8026:8025"
+      - "127.0.0.1:1026:1025"
+    volumes:
+      - baseline-mailpit-data:/data
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    networks: [baseline]
+
+  db-init:
+    # Explicit maintenance command only. Normal startup provisions one DB per job.
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    command: ["node", "dist/db/cli.js", "init"]
+    environment:
+      SQLSERVER_HOST: sqlserver
+      SQLSERVER_PORT: 1433
+      SQLSERVER_SA_USER: sa
+      SQLSERVER_SA_PASSWORD: ${SQLSERVER_SA_PASSWORD:?Set SQLSERVER_SA_PASSWORD in .env}
+      BASELINE_DB_NAME: BookGuardBaseline
+      BASELINE_DB_USER: bookguard_baseline
+      BASELINE_DB_PASSWORD: ${BASELINE_DB_PASSWORD:?Set BASELINE_DB_PASSWORD in .env}
+      SECURE_DB_NAME: BookGuardSecure
+      SECURE_DB_USER: bookguard_secure
+      SECURE_DB_PASSWORD: ${SECURE_DB_PASSWORD:?Set SECURE_DB_PASSWORD in .env}
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    restart: "no"
+    networks: [secure]
+
+  db-init-baseline:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    command: ["node", "dist/db/cli.js", "init", "baseline"]
+    environment:
+      SQLSERVER_HOST: sqlserver
+      SQLSERVER_SA_PASSWORD: ${SQLSERVER_SA_PASSWORD:?Set SQLSERVER_SA_PASSWORD in .env}
+      BASELINE_DB_PASSWORD: ${BASELINE_DB_PASSWORD:?Set BASELINE_DB_PASSWORD in .env}
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    restart: "no"
+    networks: [baseline]
+
+  db-init-secure:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    command: ["node", "dist/db/cli.js", "init", "secure"]
+    environment:
+      SQLSERVER_HOST: sqlserver
+      SQLSERVER_SA_PASSWORD: ${SQLSERVER_SA_PASSWORD:?Set SQLSERVER_SA_PASSWORD in .env}
+      SECURE_DB_PASSWORD: ${SECURE_DB_PASSWORD:?Set SECURE_DB_PASSWORD in .env}
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    restart: "no"
+    networks: [secure]
+
+  api-baseline:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      NODE_ENV: production
+      SECURITY_MODE: baseline
+      PORT: 4001
+      SQLSERVER_HOST: sqlserver
+      SQLSERVER_PORT: 1433
+      DB_NAME: BookGuardBaseline
+      DB_USER: bookguard_baseline
+      DB_PASSWORD: ${BASELINE_DB_PASSWORD:?Set BASELINE_DB_PASSWORD in .env}
+      JWT_SECRET: ${BASELINE_JWT_SECRET:-baseline-lab-secret}
+      WEB_ORIGIN: http://localhost:5173
+      ALLOW_INSECURE_LAB: "true"
+      BASELINE_UPLOAD_DIR: /app/uploads
+      REPORTS_DIR: /app/reports/generated
+      SMTP_HOST: mailpit-baseline
+      SMTP_PORT: 1025
+      SMTP_SECURE: "false"
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-no-reply@bookguard.local}
+      MAIL_FROM_NAME: "${MAIL_FROM_NAME:-Thư An Bookstore}"
+      PASSWORD_RESET_TTL_MINUTES: ${PASSWORD_RESET_TTL_MINUTES:-30}
+      EMAIL_VERIFICATION_TTL_HOURS: ${EMAIL_VERIFICATION_TTL_HOURS:-24}
+      ACCESS_TOKEN_TTL_MINUTES: ${ACCESS_TOKEN_TTL_MINUTES:-15}
+      SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-7}
+    ports:
+      - "127.0.0.1:4001:4001"
+    volumes:
+      - baseline-uploads:/app/uploads
+      - ./reports/generated:/app/reports/generated:ro
+    depends_on:
+      db-init-baseline:
+        condition: service_completed_successfully
+      mailpit-baseline:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4001/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks: [baseline]
+
+  api-secure:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      NODE_ENV: production
+      SECURITY_MODE: secure
+      PORT: 4002
+      SQLSERVER_HOST: sqlserver
+      SQLSERVER_PORT: 1433
+      DB_NAME: BookGuardSecure
+      DB_USER: bookguard_secure
+      DB_PASSWORD: ${SECURE_DB_PASSWORD:?Set SECURE_DB_PASSWORD in .env}
+      JWT_SECRET: ${SECURE_JWT_SECRET:?Set SECURE_JWT_SECRET in .env}
+      CSRF_SECRET: ${CSRF_SECRET:?Set CSRF_SECRET in .env}
+      WEB_ORIGIN: http://localhost:5174
+      SECURE_UPLOAD_DIR: /app/uploads
+      REPORTS_DIR: /app/reports/generated
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-no-reply@bookguard.local}
+      MAIL_FROM_NAME: "${MAIL_FROM_NAME:-Thư An Bookstore}"
+      PASSWORD_RESET_TTL_MINUTES: ${PASSWORD_RESET_TTL_MINUTES:-30}
+      EMAIL_VERIFICATION_TTL_HOURS: ${EMAIL_VERIFICATION_TTL_HOURS:-24}
+      ACCESS_TOKEN_TTL_MINUTES: ${ACCESS_TOKEN_TTL_MINUTES:-15}
+      SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-7}
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-2QXUI4J4}
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-RAHQxnhjxUk1ambjhWrhAAMPfNxVuErw}
+      VNPAY_URL: ${VNPAY_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      PAYOS_CLIENT_ID: ${PAYOS_CLIENT_ID:-}
+      PAYOS_API_KEY: ${PAYOS_API_KEY:-}
+      PAYOS_CHECKSUM_KEY: ${PAYOS_CHECKSUM_KEY:-}
+    ports:
+      - "127.0.0.1:4002:4002"
+    volumes:
+      - secure-uploads:/app/uploads
+      - ./reports/generated:/app/reports/generated:ro
+    depends_on:
+      db-init-secure:
+        condition: service_completed_successfully
+      mailpit:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4002/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks: [secure]
+
+  web-baseline:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_SECURITY_MODE: baseline
+        VITE_API_URL: http://localhost:4001
+        VITE_MAIL_UI_URL: http://localhost:8026
+    ports:
+      - "127.0.0.1:5173:80"
+    depends_on:
+      api-baseline:
+        condition: service_healthy
+    networks: [baseline]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  web-secure:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_SECURITY_MODE: secure
+        VITE_API_URL: http://localhost:4002
+        VITE_MAIL_UI_URL: http://localhost:8025
+    ports:
+      - "127.0.0.1:5174:80"
+    depends_on:
+      api-secure:
+        condition: service_healthy
+    networks: [secure]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  security-tests:
+    networks: [baseline, secure]
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: tests/security/Dockerfile
+    environment:
+      BASELINE_URL: http://api-baseline:4001
+      SECURE_URL: http://api-secure:4002
+    volumes:
+      - ./reports/generated:/app/reports/generated
+    depends_on:
+      api-baseline:
+        condition: service_healthy
+      api-secure:
+        condition: service_healthy
+
+  functional-tests:
+    networks: [baseline, secure]
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: tests/functional/Dockerfile
+    environment:
+      BASELINE_URL: http://api-baseline:4001
+      SECURE_URL: http://api-secure:4002
+    volumes:
+      - ./reports/generated:/app/reports/generated
+    depends_on:
+      api-baseline:
+        condition: service_healthy
+      api-secure:
+        condition: service_healthy
+
+  performance-baseline:
+    networks: [baseline]
+    profiles: ["tools"]
+    image: grafana/k6:latest
+    environment:
+      BASE_URL: http://api-baseline:4001
+      TEST_MODE: baseline
+      OUTPUT_FILE: /reports/k6-baseline.json
+    volumes:
+      - ./tests/performance:/scripts:ro
+      - ./reports/generated:/reports
+    command: ["run", "/scripts/bookstore.js"]
+    depends_on:
+      api-baseline:
+        condition: service_healthy
+
+  performance-secure:
+    networks: [secure]
+    profiles: ["tools"]
+    image: grafana/k6:latest
+    environment:
+      BASE_URL: http://api-secure:4002
+      TEST_MODE: secure
+      OUTPUT_FILE: /reports/k6-secure.json
+    volumes:
+      - ./tests/performance:/scripts:ro
+      - ./reports/generated:/reports
+    command: ["run", "/scripts/bookstore.js"]
+    depends_on:
+      api-secure:
+        condition: service_healthy
+
+  zap-scan:
+    networks: [secure]
+    profiles: ["dast"]
+    image: ghcr.io/zaproxy/zaproxy:stable
+    user: root
+    command:
+      - zap-baseline.py
+      - -t
+      - http://web-secure
+      - -r
+      - reports/zap-secure.html
+      - -J
+      - reports/zap-secure.json
+      - -I
+    volumes:
+      - ./reports/generated:/zap/wrk/reports
+    depends_on:
+      web-secure:
+        condition: service_healthy
+
+volumes:
+  sqlserver-data:
+  mailpit-data:
+  baseline-uploads:
+  secure-uploads:
+  baseline-mailpit-data:
+
+networks:
+  baseline:
+  secure:

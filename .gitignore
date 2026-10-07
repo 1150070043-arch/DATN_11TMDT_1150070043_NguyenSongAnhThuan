@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*.local
+uploads/*
+!uploads/.gitkeep
+reports/generated/*
+!reports/generated/.gitkeep
+reports/playwright/
+*.log
+*.tsbuildinfo
+.DS_Store

@@ -1,0 +1,39 @@
+{
+  "name": "@bookguard/api",
+  "version": "1.6.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:baseline": "cross-env SECURITY_MODE=baseline HOST=127.0.0.1 PORT=4001 SMTP_HOST=localhost SMTP_PORT=1026 SMTP_SECURE=false SMTP_USER= SMTP_PASSWORD= node --env-file=../../.env --import tsx --watch src/index.ts",
+    "dev:secure": "cross-env SECURITY_MODE=secure HOST=127.0.0.1 PORT=4002 node --env-file=../../.env --import tsx --watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build --silent && node --test dist/config.test.js dist/db/migrations.test.js dist/db/seed.test.js dist/domain/discount.test.js dist/domain/inventory.test.js dist/domain/order-status.test.js dist/lib/experiments.test.js dist/lib/images.test.js dist/lib/mailer.test.js dist/security/email-verification.test.js dist/security/password-reset.test.js dist/security/refresh-token.test.js",
+    "db:init": "node --env-file=../../.env --import tsx src/db/cli.ts init",
+    "db:reset": "node --env-file=../../.env --import tsx src/db/cli.ts reset"
+  },
+  "dependencies": {
+    "argon2": "^0.44.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.0.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mssql": "^11.0.1",
+    "multer": "^2.0.2",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.9",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/mssql": "^9.1.7",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^24.3.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}

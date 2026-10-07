@@ -1,0 +1,1036 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=DM+Mono:wght@400;500&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --font-opensans: 'Open Sans', system-ui, -apple-system, sans-serif;
+  --font-display: 'Be Vietnam Pro', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-sans: 'Be Vietnam Pro', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
+
+  --color-ink: #0b0907;
+  --color-ink-2: #100e0c;
+  --color-cream: #ede7dc;
+  --color-cream-dim: #b5a99b;
+  --color-gold: #c8a94d;
+  --color-gold-dim: #a68a35;
+  --color-copper: #c8a94d;
+  --color-copper-dim: #a68a35;
+  --color-card: #120f0d;
+  --color-surface: #1a1613;
+  --color-muted: #1a1613;
+  --color-muted-text: #8c8275;
+  --color-hairline: #231e1a;
+
+  --animate-marquee: marquee 45s linear infinite;
+  --animate-marquee2: marquee2 45s linear infinite;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-shimmer: shimmer 2.5s linear infinite;
+  --animate-count: count-up 1.5s ease-out forwards;
+}
+
+@keyframes marquee {
+  from { transform: translateX(0) }
+  to { transform: translateX(-50%) }
+}
+
+@keyframes marquee2 {
+  from { transform: translateX(-50%) }
+  to { transform: translateX(0) }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg) }
+  33% { transform: translateY(-10px) rotate(0.5deg) }
+  66% { transform: translateY(-5px) rotate(-0.5deg) }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0 }
+  100% { background-position: 200% 0 }
+}
+
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(20px) }
+  to { opacity: 1; transform: translateY(0) }
+}
+
+@keyframes grain {
+  0%, 100% { transform: translate(0, 0) }
+  10% { transform: translate(-2%, -3%) }
+  20% { transform: translate(2%, 2%) }
+  30% { transform: translate(-3%, 1%) }
+  40% { transform: translate(1%, -2%) }
+  50% { transform: translate(-1%, 3%) }
+  60% { transform: translate(3%, -1%) }
+  70% { transform: translate(-2%, 2%) }
+  80% { transform: translate(2%, -3%) }
+  90% { transform: translate(-3%, 0%) }
+}
+
+html { scroll-behavior: smooth }
+
+body {
+  background: #0b0907;
+  color: #ede7dc;
+  font-family: 'Be Vietnam Pro', 'Plus Jakarta Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2b2520 transparent;
+}
+
+::-webkit-scrollbar { width: 5px }
+::-webkit-scrollbar-track { background: transparent }
+::-webkit-scrollbar-thumb { background: #2b2520; border-radius: 99px }
+
+.font-display { font-family: 'Be Vietnam Pro', 'Plus Jakarta Sans', system-ui, sans-serif }
+.font-mono { font-family: 'DM Mono', ui-monospace, monospace }
+
+/* Grain overlay disabled for crisp text readability */
+.grain::before {
+  display: none !important;
+}
+
+/* Scroll reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(36px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-left {
+  opacity: 0;
+  transform: translateX(-32px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-left.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+.reveal-scale {
+  opacity: 0;
+  transform: scale(0.94);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-scale.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Stagger delays */
+.delay-100 { transition-delay: 100ms }
+.delay-200 { transition-delay: 200ms }
+.delay-300 { transition-delay: 300ms }
+.delay-400 { transition-delay: 400ms }
+.delay-500 { transition-delay: 500ms }
+.delay-600 { transition-delay: 600ms }
+
+/* Book card 3D tilt */
+.book-card {
+  transform-style: preserve-3d;
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+  will-change: transform;
+}
+
+/* Image hover zoom */
+.img-zoom {
+  overflow: hidden;
+}
+.img-zoom img {
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.img-zoom:hover img {
+  transform: scale(1.06);
+}
+
+/* Gold shimmer button */
+.btn-gold {
+  background: linear-gradient(90deg, #c8a94d, #e8c87a, #c8a94d);
+  background-size: 200% 100%;
+  transition: background-position 0.4s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-gold:hover {
+  background-position: 100% 0;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 32px rgba(200, 169, 77, 0.3);
+}
+
+/* Horizontal scroll */
+.scroll-row {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.scroll-row > * {
+  scroll-snap-align: start;
+}
+
+/* Admin sidebar */
+.sidebar-link {
+  position: relative;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+.sidebar-link::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%) scaleY(0);
+  width: 2px;
+  height: 60%;
+  background: #c8a94d;
+  transition: transform 0.2s ease;
+  border-radius: 0 2px 2px 0;
+}
+.sidebar-link.active::before,
+.sidebar-link:hover::before {
+  transform: translateY(-50%) scaleY(1);
+}
+
+/* Table row hover */
+.row-hoverable {
+  transition: background 0.15s ease;
+  border-bottom: 1px solid #22201d;
+}
+.row-hoverable:hover {
+  background: rgba(200, 169, 77, 0.04);
+}
+
+/* Status badges */
+.badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+/* Light theme overrides */
+[data-theme="light"] {
+  --color-ink: #1a1410;
+  --color-ink-2: #f0e9de;
+  --color-cream: #1a1410;
+  --color-cream-dim: #5a4f44;
+  --color-card: #fff;
+  --color-surface: #f0e9de;
+  --color-muted: #e0d8cc;
+  --color-muted-text: #6b5e50;
+  --color-hairline: #d5cfc4;
+}
+
+[data-theme="light"] body {
+  background: #f4ede0;
+  color: #1a1410;
+}
+
+[data-theme="light"] .grain::before {
+  opacity: 0.008;
+}
+
+[data-theme="light"] * {
+  scrollbar-color: #c8bfb0 transparent;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: #c8bfb0;
+}
+
+/* Light theme — repaint hardcoded dark UI surfaces */
+[data-theme="light"] .bg-\[\#0b0907\],
+[data-theme="light"] .bg-\[\#0f0d0b\],
+[data-theme="light"] .bg-\[\#0a0806\],
+[data-theme="light"] .bg-\[\#100e0c\] {
+  background-color: #ede4d4 !important;
+}
+
+[data-theme="light"] .bg-\[\#131110\] {
+  background-color: #fff !important;
+}
+
+[data-theme="light"] .bg-\[\#1c1815\] {
+  background-color: #f0e9de !important;
+}
+
+[data-theme="light"] .bg-\[\#2b2520\] {
+  background-color: #e0d8cc !important;
+}
+
+[data-theme="light"] .border-\[\#22201d\] {
+  border-color: #d5cfc4 !important;
+}
+
+[data-theme="light"] .border-\[\#2b2520\] {
+  border-color: #c8bfb0 !important;
+}
+
+[data-theme="light"] .text-\[\#ede7dc\] {
+  color: #1a1410 !important;
+}
+
+[data-theme="light"] .text-\[\#b5a99b\] {
+  color: #5a4f44 !important;
+}
+
+[data-theme="light"] .text-\[\#7a6f64\] {
+  color: #6b5e50 !important;
+}
+
+/* Selection color */
+::selection {
+  background: rgba(200, 169, 77, 0.25);
+  color: #ede7dc;
+}
+
+/* ============================================================
+   ADMIN MODERN DARK SaaS DESIGN SYSTEM
+   Linear / Supabase / Vercel-inspired high contrast dark theme
+   ============================================================ */
+
+.reference-admin {
+  background-color: #090d16 !important;
+  color: #f1f5f9 !important;
+  font-family: 'Plus Jakarta Sans', 'Be Vietnam Pro', system-ui, -apple-system, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+}
+
+.reference-admin input,
+.reference-admin select,
+.reference-admin textarea,
+.reference-admin button {
+  font-family: 'Plus Jakarta Sans', 'Be Vietnam Pro', system-ui, sans-serif;
+}
+
+.reference-admin .font-mono,
+.reference-dialogs .font-mono,
+.reference-admin code,
+.reference-dialogs code,
+.reference-admin kbd,
+.reference-dialogs kbd,
+.reference-admin pre,
+.reference-dialogs pre {
+  font-family: 'DM Mono', ui-monospace, monospace !important;
+}
+
+/* Ensure no serif or Fraunces in admin */
+.reference-admin .font-display,
+.reference-admin .font-serif,
+.reference-dialogs .font-display,
+.reference-dialogs .font-serif {
+  font-family: 'Plus Jakarta Sans', 'Be Vietnam Pro', system-ui, sans-serif !important;
+}
+
+/* Modern thin scrollbar for admin */
+.reference-admin *::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.reference-admin *::-webkit-scrollbar-track {
+  background: transparent;
+}
+.reference-admin *::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 99px;
+}
+.reference-admin *::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Admin Sidebar link - modern active pill with amber indicator, NO spinning */
+.reference-admin .sidebar-link {
+  position: relative;
+  transition: all 0.15s ease;
+  border-radius: 8px;
+  margin: 1px 8px;
+  padding: 8px 12px !important;
+  font-size: 13.5px !important;
+  font-weight: 500;
+  color: #94a3b8;
+  border-left: none !important;
+}
+.reference-admin .sidebar-link::before {
+  display: none !important;
+}
+.reference-admin .sidebar-link:hover {
+  background-color: #131b2e !important;
+  color: #f8fafc !important;
+}
+.reference-admin .sidebar-link.active,
+.reference-admin .sidebar-link[aria-current="page"] {
+  background-color: #162036 !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.3);
+}
+.reference-admin .sidebar-link.active svg,
+.reference-admin .sidebar-link[aria-current="page"] svg {
+  color: #fbbf24 !important;
+}
+
+/* Ensure admin views span 100% full width */
+.reference-admin main > div {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* ========================================================
+   ADMIN MOTION & ANIMATIONS
+   ======================================================== */
+
+/* Tab Entrance Transition */
+@keyframes adminTabFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-tab-content {
+  animation: adminTabFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Ambient Aurora Glow */
+@keyframes ambientGlowPulse {
+  0% { transform: scale(1) translate(0, 0); opacity: 0.5; }
+  50% { transform: scale(1.1) translate(25px, -15px); opacity: 0.85; }
+  100% { transform: scale(1) translate(0, 0); opacity: 0.5; }
+}
+
+.admin-ambient-aurora {
+  position: absolute;
+  pointer-events: none;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+}
+.admin-ambient-aurora .aurora-orb-1 {
+  position: absolute;
+  top: -80px;
+  right: 15%;
+  width: 550px;
+  height: 550px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.08) 0%, transparent 70%);
+  filter: blur(55px);
+  animation: ambientGlowPulse 14s ease-in-out infinite alternate;
+}
+.admin-ambient-aurora .aurora-orb-2 {
+  position: absolute;
+  bottom: 40px;
+  left: 20%;
+  width: 650px;
+  height: 650px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.06) 0%, transparent 70%);
+  filter: blur(65px);
+  animation: ambientGlowPulse 18s ease-in-out infinite alternate-reverse;
+}
+.admin-ambient-aurora .aurora-orb-3 {
+  position: absolute;
+  top: 45%;
+  right: 5%;
+  width: 500px;
+  height: 500px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.05) 0%, transparent 70%);
+  filter: blur(55px);
+  animation: ambientGlowPulse 16s ease-in-out infinite alternate;
+}
+
+/* Card Hover Lift & Border Shimmer */
+.admin-card-hover {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+}
+.admin-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 25px -8px rgba(0, 0, 0, 0.4);
+  border-color: rgba(245, 158, 11, 0.35) !important;
+}
+
+/* Radar Ping Beacon for live status */
+@keyframes radarPing {
+  0% { transform: scale(1); opacity: 0.85; }
+  75% { transform: scale(2.4); opacity: 0; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+.admin-radar-beacon {
+  position: relative;
+  display: inline-flex;
+}
+.admin-radar-beacon::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.6;
+  animation: radarPing 2.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Micro-interaction for buttons */
+.admin-btn-press {
+  transition: transform 0.12s ease, opacity 0.15s ease;
+}
+.admin-btn-press:active {
+  transform: scale(0.96);
+}
+
+/* ========================================================
+   ADMIN THEMES: DARK (OBSIDIAN), MIDNIGHT (CYBER SOC) & LIGHT
+   ======================================================== */
+
+/* Toàn bộ trang Quản trị Admin, Mã đơn, Giá tiền, Số tồn kho, Nhật ký kiểm toán & Modal: Open Sans */
+.reference-admin,
+.reference-admin *,
+.reference-dialogs,
+.reference-dialogs *,
+.legacy-ui.reference-dialogs,
+.legacy-ui.reference-dialogs *,
+.reference-admin .font-mono,
+.reference-admin [class*="font-mono"],
+.reference-dialogs .font-mono,
+.reference-dialogs [class*="font-mono"] {
+  font-family: 'Open Sans', system-ui, -apple-system, sans-serif !important;
+}
+
+/* 1. THEME: MIDNIGHT CYBER (SOC Navy) */
+.reference-admin.theme-midnight {
+  background-color: #030712 !important;
+  color: #f1f5f9 !important;
+}
+.reference-admin.theme-midnight header {
+  background-color: #080f24 !important;
+  border-bottom-color: #1e293b !important;
+}
+.reference-admin.theme-midnight aside {
+  background-color: #080f24 !important;
+  border-right-color: #1e293b !important;
+}
+.reference-admin.theme-midnight main {
+  background: radial-gradient(circle at 10% 20%, rgba(14, 165, 233, 0.08), transparent 45%),
+              radial-gradient(circle at 90% 80%, rgba(99, 102, 241, 0.08), transparent 45%),
+              #030712 !important;
+}
+.reference-admin.theme-midnight .sidebar-link:hover {
+  background-color: #0e1a38 !important;
+}
+.reference-admin.theme-midnight .sidebar-link.active {
+  background-color: #162547 !important;
+  box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.4) !important;
+}
+.reference-admin.theme-midnight .sidebar-link.active svg {
+  color: #38bdf8 !important;
+}
+
+/* 2. THEME: LIGHT MODERN SAAS (Đồng bộ toàn diện, Tương phản cao) */
+.reference-admin.theme-light,
+[data-admin-theme="light"] .reference-admin,
+[data-admin-theme="light"] .reference-dialogs,
+.theme-light.reference-dialogs,
+.theme-light .reference-dialogs {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+/* Header in light mode */
+.reference-admin.theme-light header,
+[data-admin-theme="light"] header {
+  background-color: #ffffff !important;
+  border-bottom-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05) !important;
+}
+.reference-admin.theme-light header .text-white,
+.reference-admin.theme-light header .text-slate-200,
+[data-admin-theme="light"] header .text-white,
+[data-admin-theme="light"] header .text-slate-200 {
+  color: #0f172a !important;
+}
+
+/* Theme switcher group in light mode */
+.reference-admin.theme-light .theme-switcher-group,
+[data-admin-theme="light"] .theme-switcher-group {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+.reference-admin.theme-light .theme-switcher-group button,
+[data-admin-theme="light"] .theme-switcher-group button {
+  color: #64748b !important;
+}
+.reference-admin.theme-light .theme-switcher-group button:hover,
+[data-admin-theme="light"] .theme-switcher-group button:hover {
+  color: #0f172a !important;
+  background-color: #e2e8f0 !important;
+}
+.reference-admin.theme-light .theme-switcher-group button.active-light,
+[data-admin-theme="light"] .theme-switcher-group button.active-light {
+  background-color: #ffffff !important;
+  color: #d97706 !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Sidebar in light mode */
+.reference-admin.theme-light aside,
+[data-admin-theme="light"] aside {
+  background-color: #ffffff !important;
+  border-right-color: #e2e8f0 !important;
+}
+.reference-admin.theme-light aside .text-slate-500,
+[data-admin-theme="light"] aside .text-slate-500 {
+  color: #64748b !important;
+}
+.reference-admin.theme-light .sidebar-link,
+[data-admin-theme="light"] .sidebar-link {
+  color: #475569 !important;
+}
+.reference-admin.theme-light .sidebar-link:hover,
+[data-admin-theme="light"] .sidebar-link:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+.reference-admin.theme-light .sidebar-link.active,
+[data-admin-theme="light"] .sidebar-link.active {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+  box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.5) !important;
+}
+.reference-admin.theme-light .sidebar-link.active svg,
+[data-admin-theme="light"] .sidebar-link.active svg {
+  color: #d97706 !important;
+}
+.reference-admin.theme-light main,
+[data-admin-theme="light"] main {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+.reference-admin.theme-light .admin-ambient-aurora,
+[data-admin-theme="light"] .admin-ambient-aurora {
+  opacity: 0.15 !important;
+}
+
+/* Typography in light mode - High contrast, legible */
+.reference-admin.theme-light h1,
+.reference-admin.theme-light h2,
+.reference-admin.theme-light h3,
+.reference-admin.theme-light h4,
+.reference-admin.theme-light strong,
+.reference-admin.theme-light .text-white,
+[data-admin-theme="light"] h1,
+[data-admin-theme="light"] h2,
+[data-admin-theme="light"] h3,
+[data-admin-theme="light"] h4,
+[data-admin-theme="light"] strong,
+[data-admin-theme="light"] .text-white,
+[data-admin-theme="light"] .reference-dialogs .text-white {
+  color: #0f172a !important;
+}
+
+.reference-admin.theme-light .text-slate-100,
+.reference-admin.theme-light .text-slate-200,
+[data-admin-theme="light"] .text-slate-100,
+[data-admin-theme="light"] .text-slate-200,
+[data-admin-theme="light"] .reference-dialogs .text-slate-100,
+[data-admin-theme="light"] .reference-dialogs .text-slate-200 {
+  color: #0f172a !important;
+}
+
+.reference-admin.theme-light .text-slate-300,
+.reference-admin.theme-light .text-slate-400,
+[data-admin-theme="light"] .text-slate-300,
+[data-admin-theme="light"] .text-slate-400,
+[data-admin-theme="light"] .reference-dialogs .text-slate-300,
+[data-admin-theme="light"] .reference-dialogs .text-slate-400 {
+  color: #334155 !important;
+}
+
+.reference-admin.theme-light .text-slate-500,
+[data-admin-theme="light"] .text-slate-500,
+[data-admin-theme="light"] .reference-dialogs .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Card surfaces & panels in light mode */
+.reference-admin.theme-light [class*="bg-[#0b101c]"],
+.reference-admin.theme-light [class*="bg-[#090d16]"],
+.reference-admin.theme-light [class*="bg-[#0f172a]"],
+.reference-admin.theme-light [class*="bg-[#0e0c0a]"],
+.reference-admin.theme-light [class*="bg-[#120f0d]"],
+.reference-admin.theme-light [class*="bg-[#060810]"],
+.reference-admin.theme-light [class*="bg-[#060a14]"],
+.reference-admin.theme-light [class*="bg-[#101726]"],
+.reference-admin.theme-light [class*="bg-[#080d18]"],
+.reference-admin.theme-light [class*="bg-[#070b14]"],
+.reference-admin.theme-light .bg-slate-900\/90,
+.reference-admin.theme-light .bg-slate-950\/90,
+.reference-admin.theme-light .bg-gradient-to-b.from-slate-900\/90,
+.reference-admin.theme-light .bg-slate-900,
+.reference-admin.theme-light .bg-slate-900\/80,
+.reference-admin.theme-light .bg-slate-900\/70,
+.reference-admin.theme-light .bg-slate-900\/60,
+.reference-admin.theme-light .bg-slate-900\/50,
+.reference-admin.theme-light .bg-slate-950,
+[data-admin-theme="light"] .reference-dialogs [class*="bg-[#0f172a]"],
+[data-admin-theme="light"] .reference-dialogs [class*="bg-[#090d16]"],
+[data-admin-theme="light"] .reference-dialogs [class*="bg-[#060810]"],
+[data-admin-theme="light"] .reference-dialogs [class*="bg-[#060a14]"],
+[data-admin-theme="light"] .reference-dialogs [class*="bg-[#101726]"],
+[data-admin-theme="light"] .reference-dialogs .bg-slate-900,
+[data-admin-theme="light"] .reference-dialogs .bg-slate-950 {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05) !important;
+}
+
+/* Inner nested subpanels in light mode dialogs: subtle Slate-50 background */
+[data-admin-theme="light"] .reference-dialogs .lg\:col-span-6[class*="bg-[#090d16]"],
+[data-admin-theme="light"] .reference-dialogs .lg\:col-span-7[class*="bg-[#090d16]"],
+[data-admin-theme="light"] .reference-dialogs .lg\:col-span-5[class*="bg-[#090d16]"],
+.reference-admin.theme-light .reference-dialogs .lg\:col-span-6[class*="bg-[#090d16]"],
+.theme-light .reference-dialogs .lg\:col-span-6[class*="bg-[#090d16]"] {
+  background: #f8fafc !important;
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* Deep inner cards (Customer details, Email items, Timeline item card) in light mode */
+[data-admin-theme="light"] .reference-dialogs [class*="bg-[#060810]"],
+.theme-light .reference-dialogs [class*="bg-[#060810]"] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* Chart text in light mode */
+.reference-admin.theme-light .text-\[\#ede7dc\],
+[data-admin-theme="light"] .text-\[\#ede7dc\] {
+  color: #0f172a !important;
+}
+.reference-admin.theme-light .text-\[\#8c8275\],
+[data-admin-theme="light"] .text-\[\#8c8275\] {
+  color: #64748b !important;
+}
+.reference-admin.theme-light .text-\[\#c8a94d\],
+[data-admin-theme="light"] .text-\[\#c8a94d\] {
+  color: #b45309 !important;
+}
+.reference-admin.theme-light .border-\[\#231e1a\],
+.reference-admin.theme-light .border-\[\#1e1915\],
+[data-admin-theme="light"] .border-\[\#231e1a\],
+[data-admin-theme="light"] .border-\[\#1e1915\] {
+  border-color: #e2e8f0 !important;
+}
+
+/* Borders in light mode */
+.reference-admin.theme-light .border-slate-800,
+.reference-admin.theme-light .border-slate-800\/80,
+.reference-admin.theme-light .border-slate-800\/90,
+.reference-admin.theme-light .border-slate-700,
+.reference-admin.theme-light .border-slate-700\/80,
+.reference-admin.theme-light .divide-slate-800 > :not([hidden]) ~ :not([hidden]),
+[data-admin-theme="light"] .reference-dialogs .border-slate-800,
+[data-admin-theme="light"] .reference-dialogs .border-slate-700,
+[data-admin-theme="light"] .reference-dialogs .divide-slate-800 > :not([hidden]) ~ :not([hidden]),
+.theme-light .reference-dialogs .border-slate-800,
+.theme-light .reference-dialogs .border-slate-700 {
+  border-color: #e2e8f0 !important;
+}
+
+/* Accents in light mode - High contrast, rich and readable */
+.reference-admin.theme-light .text-amber-400,
+.reference-admin.theme-light .text-amber-300,
+[data-admin-theme="light"] .text-amber-400,
+[data-admin-theme="light"] .text-amber-300,
+[data-admin-theme="light"] .reference-dialogs .text-amber-400,
+.theme-light .reference-dialogs .text-amber-400 {
+  color: #b45309 !important; /* Amber 700 / Dark gold */
+}
+
+.reference-admin.theme-light .text-emerald-400,
+[data-admin-theme="light"] .text-emerald-400,
+[data-admin-theme="light"] .reference-dialogs .text-emerald-400,
+.theme-light .reference-dialogs .text-emerald-400 {
+  color: #047857 !important; /* Emerald 700 */
+}
+
+.reference-admin.theme-light .text-sky-400,
+[data-admin-theme="light"] .text-sky-400,
+[data-admin-theme="light"] .reference-dialogs .text-sky-400,
+.theme-light .reference-dialogs .text-sky-400 {
+  color: #0284c7 !important; /* Sky 600 */
+}
+
+.reference-admin.theme-light .text-blue-400,
+[data-admin-theme="light"] .text-blue-400,
+[data-admin-theme="light"] .reference-dialogs .text-blue-400,
+.theme-light .reference-dialogs .text-blue-400 {
+  color: #1d4ed8 !important; /* Blue 700 */
+}
+
+.reference-admin.theme-light .text-rose-400,
+[data-admin-theme="light"] .text-rose-400,
+[data-admin-theme="light"] .reference-dialogs .text-rose-400,
+.theme-light .reference-dialogs .text-rose-400 {
+  color: #be123c !important; /* Rose 700 */
+}
+
+/* Status Badges in light mode */
+.reference-admin.theme-light .bg-emerald-500\/10,
+[data-admin-theme="light"] .bg-emerald-500\/10 {
+  background-color: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+  color: #047857 !important;
+}
+
+.reference-admin.theme-light .bg-sky-500\/10,
+[data-admin-theme="light"] .bg-sky-500\/10 {
+  background-color: #f0f9ff !important;
+  border-color: #bae6fd !important;
+  color: #0284c7 !important;
+}
+
+.reference-admin.theme-light .bg-blue-500\/10,
+[data-admin-theme="light"] .bg-blue-500\/10 {
+  background-color: #eff6ff !important;
+  border-color: #bfdbfe !important;
+  color: #1d4ed8 !important;
+}
+
+.reference-admin.theme-light .bg-amber-500\/10,
+.reference-admin.theme-light .bg-amber-950\/15,
+.reference-admin.theme-light .bg-amber-950\/30,
+[data-admin-theme="light"] .bg-amber-500\/10,
+[data-admin-theme="light"] .bg-amber-950\/15,
+[data-admin-theme="light"] .bg-amber-950\/30 {
+  background-color: #fefce8 !important;
+  border-color: #fde047 !important;
+  color: #854d0e !important;
+}
+
+.reference-admin.theme-light .bg-rose-500\/10,
+.reference-admin.theme-light .bg-rose-950\/20,
+[data-admin-theme="light"] .bg-rose-500\/10,
+[data-admin-theme="light"] .bg-rose-950\/20 {
+  background-color: #fff1f2 !important;
+  border-color: #fecdd3 !important;
+  color: #be123c !important;
+}
+
+.reference-admin.theme-light .bg-slate-500\/10,
+.reference-admin.theme-light .bg-slate-800,
+[data-admin-theme="light"] .bg-slate-500\/10,
+[data-admin-theme="light"] .bg-slate-800 {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+/* Inputs, selects and search fields in light mode */
+.reference-admin.theme-light input,
+.reference-admin.theme-light select,
+.reference-admin.theme-light textarea,
+[data-admin-theme="light"] input,
+[data-admin-theme="light"] select,
+[data-admin-theme="light"] textarea,
+[data-admin-theme="light"] .reference-dialogs select,
+[data-admin-theme="light"] .reference-dialogs input,
+[data-admin-theme="light"] .reference-dialogs textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+.reference-admin.theme-light select option,
+[data-admin-theme="light"] select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+.reference-admin.theme-light input::placeholder,
+[data-admin-theme="light"] input::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Tables in light mode */
+.reference-admin.theme-light table,
+[data-admin-theme="light"] table {
+  background-color: #ffffff !important;
+}
+.reference-admin.theme-light table thead tr,
+[data-admin-theme="light"] table thead tr {
+  background-color: #f1f5f9 !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+.reference-admin.theme-light table thead th,
+[data-admin-theme="light"] table thead th {
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+}
+.reference-admin.theme-light table tbody,
+[data-admin-theme="light"] table tbody {
+  background-color: #ffffff !important;
+}
+.reference-admin.theme-light table tbody tr,
+[data-admin-theme="light"] table tbody tr {
+  background-color: #ffffff !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+.reference-admin.theme-light table tbody tr:hover,
+[data-admin-theme="light"] table tbody tr:hover {
+  background-color: #f8fafc !important;
+}
+.reference-admin.theme-light table td,
+[data-admin-theme="light"] table td {
+  color: #1e293b !important;
+}
+.reference-admin.theme-light table td .text-slate-100,
+.reference-admin.theme-light table td .text-slate-200,
+.reference-admin.theme-light table td .text-slate-300,
+[data-admin-theme="light"] table td .text-slate-100,
+[data-admin-theme="light"] table td .text-slate-200,
+[data-admin-theme="light"] table td .text-slate-300 {
+  color: #0f172a !important;
+}
+.reference-admin.theme-light table td .text-slate-400,
+[data-admin-theme="light"] table td .text-slate-400 {
+  color: #64748b !important;
+}
+
+/* Security test case accordions in light mode */
+.reference-admin.theme-light [class*="bg-[#0f172a]"] button,
+.reference-admin.theme-light [class*="bg-[#090d16]"] button,
+[data-admin-theme="light"] [class*="bg-[#0f172a]"] button,
+[data-admin-theme="light"] [class*="bg-[#090d16]"] button {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+.reference-admin.theme-light [class*="bg-[#0f172a]"] button:hover,
+[data-admin-theme="light"] [class*="bg-[#0f172a]"] button:hover {
+  background-color: #f8fafc !important;
+}
+.reference-admin.theme-light button .text-white,
+.reference-admin.theme-light button .text-slate-200,
+[data-admin-theme="light"] button .text-white,
+[data-admin-theme="light"] button .text-slate-200 {
+  color: #0f172a !important;
+}
+
+/* Buttons in light mode */
+.reference-admin.theme-light button.border-slate-700,
+.reference-admin.theme-light button.bg-slate-900,
+.reference-admin.theme-light button.border-slate-800,
+[data-admin-theme="light"] .reference-dialogs button.bg-slate-900,
+[data-admin-theme="light"] .reference-dialogs button.border-slate-800,
+[data-admin-theme="light"] .reference-dialogs button.border-slate-700,
+.theme-light .reference-dialogs button.bg-slate-900,
+.theme-light .reference-dialogs button.border-slate-800 {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+.reference-admin.theme-light button.border-slate-700:hover,
+.reference-admin.theme-light button.bg-slate-900:hover,
+[data-admin-theme="light"] .reference-dialogs button.bg-slate-900:hover {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+.reference-admin.theme-light .bg-slate-850,
+[data-admin-theme="light"] .bg-slate-850 {
+  background-color: #e2e8f0 !important;
+}
+
+/* Backdrop in light mode */
+[data-admin-theme="light"] .bg-black\/85,
+[data-admin-theme="light"] .bg-black\/80,
+.theme-light .bg-black\/85,
+.theme-light .bg-black\/80 {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+}
+
+/* Alert boxes in light mode */
+.reference-admin.theme-light [role="alert"],
+.reference-admin.theme-light .alert-danger,
+.reference-admin.theme-light .border-red-900,
+.reference-admin.theme-light .border-rose-500\/40,
+[data-admin-theme="light"] [role="alert"],
+[data-admin-theme="light"] .border-red-900 {
+  background-color: #fef2f2 !important;
+  border-color: #fecaca !important;
+  color: #991b1b !important;
+}
+
+/* Card hover in light mode */
+.reference-admin.theme-light .admin-card-hover:hover,
+[data-admin-theme="light"] .admin-card-hover:hover {
+  border-color: rgba(217, 119, 6, 0.4) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Scrollbars in light mode */
+.reference-admin.theme-light *::-webkit-scrollbar-thumb,
+[data-admin-theme="light"] *::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+.reference-admin.theme-light *::-webkit-scrollbar-thumb:hover,
+[data-admin-theme="light"] *::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Security Comparison evidence & badges in light mode */
+.reference-admin.theme-light .bg-emerald-950\/20,
+.reference-admin.theme-light .bg-emerald-500\/5,
+[data-admin-theme="light"] .bg-emerald-950\/20,
+[data-admin-theme="light"] .bg-emerald-500\/5 {
+  background-color: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+}
+.reference-admin.theme-light .bg-rose-950\/20,
+.reference-admin.theme-light .bg-rose-500\/5,
+[data-admin-theme="light"] .bg-rose-950\/20,
+[data-admin-theme="light"] .bg-rose-500\/5 {
+  background-color: #fff1f2 !important;
+  border-color: #fecdd3 !important;
+}
+.reference-admin.theme-light .text-emerald-200,
+.reference-admin.theme-light .text-emerald-300,
+[data-admin-theme="light"] .text-emerald-200,
+[data-admin-theme="light"] .text-emerald-300 {
+  color: #065f46 !important;
+}
+.reference-admin.theme-light .text-rose-200,
+.reference-admin.theme-light .text-rose-300,
+[data-admin-theme="light"] .text-rose-200,
+[data-admin-theme="light"] .text-rose-300 {
+  color: #9f1239 !important;
+}
+.reference-admin.theme-light .bg-rose-950\/60,
+[data-admin-theme="light"] .bg-rose-950\/60 {
+  background-color: #fee2e2 !important;
+  border-color: #fca5a5 !important;
+  color: #991b1b !important;
+}
+.reference-admin.theme-light [class*="bg-[#0a0f1d]"],
+.reference-admin.theme-light [class*="bg-[#060a14]"],
+[data-admin-theme="light"] [class*="bg-[#0a0f1d]"],
+[data-admin-theme="light"] [class*="bg-[#060a14]"] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+
+
+
+
+
+

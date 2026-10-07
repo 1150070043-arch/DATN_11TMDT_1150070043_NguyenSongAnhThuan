@@ -1,0 +1,28 @@
+{
+  "name": "@bookguard/web",
+  "version": "1.6.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:baseline": "cross-env VITE_SECURITY_MODE=baseline VITE_API_URL=http://localhost:4001 VITE_MAIL_UI_URL=http://localhost:8026 vite --port 5173",
+    "dev:secure": "cross-env VITE_SECURITY_MODE=secure VITE_API_URL=http://localhost:4002 VITE_MAIL_UI_URL=http://localhost:8025 vite --port 5174",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b --pretty false",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^5.0.2",
+    "bootstrap": "^5.3.8",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^7.8.2",
+    "vite": "^7.1.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.2"
+  }
+}

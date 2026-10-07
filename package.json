@@ -1,0 +1,43 @@
+{
+  "name": "bookguard-datn",
+  "version": "1.6.0",
+  "private": true,
+  "description": "Website bán sách và môi trường thực nghiệm bảo mật nhiều lớp cho đồ án tốt nghiệp",
+  "workspaces": [
+    "apps/api",
+    "apps/web",
+    "tests/functional",
+    "tests/security",
+    "tests/e2e"
+  ],
+  "scripts": {
+    "up:secure": "docker compose up -d --build web-secure",
+    "up:baseline": "docker compose up -d --build web-baseline",
+    "stop:secure": "docker compose stop web-secure api-secure mailpit",
+    "stop:baseline": "docker compose stop web-baseline api-baseline mailpit-baseline",
+    "db:init:secure": "npm run db:init --workspace @bookguard/api -- secure",
+    "db:init:baseline": "npm run db:init --workspace @bookguard/api -- baseline",
+    "test:isolation": "npm run build --workspace @bookguard/api && node --test apps/api/dist/config.test.js && npm run test --workspace @bookguard/e2e-tests -- twin-isolation",
+    "test:isolation:storage": "node scripts/check-twin-storage.mjs",
+    "dev:api:baseline": "npm run dev:baseline --workspace @bookguard/api",
+    "dev:api:secure": "npm run dev:secure --workspace @bookguard/api",
+    "dev:web:baseline": "npm run dev:baseline --workspace @bookguard/web",
+    "dev:web:secure": "npm run dev:secure --workspace @bookguard/web",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspace @bookguard/api",
+    "verify": "npm run typecheck && npm test && npm run build",
+    "test:functional": "npm run test --workspace @bookguard/functional-tests",
+    "test:security": "npm run test --workspace @bookguard/security-tests",
+    "test:e2e": "npm run test --workspace @bookguard/e2e-tests",
+    "test:e2e:ui": "npm run test:ui --workspace @bookguard/e2e-tests",
+    "db:init": "npm run db:init --workspace @bookguard/api",
+    "db:reset": "npm run db:reset --workspace @bookguard/api"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3"
+  }
+}

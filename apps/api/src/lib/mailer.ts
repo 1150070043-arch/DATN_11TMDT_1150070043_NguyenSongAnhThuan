@@ -5,6 +5,7 @@ import { config } from "../config.js";
 
 export type MailContent = {
   to: string;
+  replyTo?: string;
   subject: string;
   text: string;
   html: string;
@@ -39,6 +40,7 @@ function messageSource(content: MailContent, smtp: SmtpSettings): string {
   return [
     `From: ${encodeHeader(smtp.fromName)} <${smtp.fromAddress}>`,
     `To: <${content.to}>`,
+    ...(content.replyTo ? [`Reply-To: <${content.replyTo}>`] : []),
     `Subject: ${encodeHeader(content.subject)}`,
     `Date: ${new Date().toUTCString()}`,
     `Message-ID: ${messageId}`,
@@ -136,6 +138,7 @@ async function command(
 }
 
 export async function sendMail(content: MailContent, smtp: SmtpSettings = config.smtp): Promise<void> {
+  if (content.replyTo && /[\r\n<>]/.test(content.replyTo)) throw new Error("Invalid reply-to address");
   const socket = await connect(smtp);
   const readLine = lineReader(socket);
   try {

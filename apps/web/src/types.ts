@@ -78,7 +78,7 @@ export type Cart = {
 
 export type OrderStatus = "pending" | "confirmed" | "shipping" | "completed" | "cancelled";
 export type PaymentMethod = "cod" | "vnpay";
-export type PaymentStatus = "unpaid" | "paid" | "failed";
+export type PaymentStatus = "unpaid" | "paid" | "failed" | "refund_pending" | "refunded";
 
 export type Order = {
   id: number;

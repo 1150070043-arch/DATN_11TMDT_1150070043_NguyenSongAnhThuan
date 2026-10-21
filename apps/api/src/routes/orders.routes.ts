@@ -5,7 +5,10 @@ import { getPool, sql } from "../db/pool.js";
 import { calculateDiscount } from "../domain/discount.js";
 import { asyncHandler, HttpError } from "../lib/http.js";
 import { deliverOrderNotificationLater } from "../lib/order-notifications.js";
+import { queueCancelledPaymentReview, savePaymentAttempt } from "../lib/payment-attempts.js";
 import { buildVnpayPaymentUrl } from "../lib/vnpay.js";
+import { initializeStockHold } from "../lib/stock-holds.js";
+import { releaseOrderReservation } from "../lib/order-reservation.js";
 import { ensureOwnerOrAdmin, requireAuth } from "../security/auth.js";
 
 const checkoutSchema = z.object({
@@ -29,6 +32,37 @@ type CheckoutItem = {
 
 export const ordersRouter = Router();
 ordersRouter.use(requireAuth);
+
+// A preview never reserves a coupon use. Checkout validates again inside its transaction.
+ordersRouter.post("/quote", asyncHandler(async (req, res) => {
+  const { couponCode } = checkoutSchema.pick({ couponCode: true }).parse(req.body);
+  const pool = await getPool();
+  const cart = await pool.request().input("userId", sql.Int, req.authUser!.id).query<CheckoutItem>(`
+    SELECT b.Id AS BookId, b.Title, b.Price, b.Stock, ci.Quantity
+    FROM dbo.Carts c
+    INNER JOIN dbo.CartItems ci ON ci.CartId = c.Id
+    INNER JOIN dbo.Books b ON b.Id = ci.BookId
+    WHERE c.UserId = @userId AND b.IsPublished = 1;
+  `);
+  if (!cart.recordset.length) throw new HttpError(409, "Giỏ hàng đang trống.", "EMPTY_CART");
+  const subtotal = cart.recordset.reduce((sum, item) => sum + Number(item.Price) * item.Quantity, 0);
+  let discount = 0;
+  if (couponCode) {
+    const result = await pool.request().input("code", sql.NVarChar(40), couponCode).query<{
+      DiscountType: "percent" | "fixed"; DiscountValue: number; MinimumOrder: number; MaximumDiscount: number | null;
+    }>(`
+      SELECT DiscountType, DiscountValue, MinimumOrder, MaximumDiscount FROM dbo.Coupons
+      WHERE Code = @code AND IsActive = 1
+        AND StartsAt <= SYSUTCDATETIME() AND EndsAt > SYSUTCDATETIME()
+        AND (UsageLimit IS NULL OR UsedCount < UsageLimit);
+    `);
+    const coupon = result.recordset[0];
+    if (!coupon) throw new HttpError(422, "Mã ưu đãi không hợp lệ hoặc đã hết hạn.", "COUPON_INVALID");
+    discount = calculateDiscount(subtotal, { type: coupon.DiscountType, value: Number(coupon.DiscountValue), minimumOrder: Number(coupon.MinimumOrder), maximumDiscount: coupon.MaximumDiscount == null ? null : Number(coupon.MaximumDiscount) });
+    if (!discount) throw new HttpError(422, "Đơn hàng chưa đạt giá trị tối thiểu của mã ưu đãi.", "COUPON_MINIMUM_NOT_MET");
+  }
+  res.json({ data: { subtotal, discount, total: subtotal - discount, couponCode } });
+}));
 
 ordersRouter.post(
   "/",
@@ -211,21 +245,20 @@ ordersRouter.post(
       let paymentUrl: string | null = null;
 
       if (body.paymentMethod === "vnpay") {
-        const returnUrl = `${req.protocol}://${req.get("host")}/api/payments/vnpay-return`;
+        const hold = await initializeStockHold(transaction, orderId);
+        const returnUrl = config.vnpay.returnUrl ?? `${req.protocol}://${req.get("host")}/api/payments/vnpay-return`;
         paymentUrl = buildVnpayPaymentUrl({
           orderId,
           amount: total,
           ipAddress: req.ip || "127.0.0.1",
           returnUrl,
+          expiresAt: hold.StockHoldUntil,
           orderInfo: `Thanh toan don hang #${orderId}`
         });
       }
 
       if (paymentUrl) {
-        await new sql.Request(transaction)
-          .input("orderId", sql.Int, orderId)
-          .input("paymentUrl", sql.NVarChar(1000), paymentUrl)
-          .query(`UPDATE dbo.Orders SET PaymentUrl = @paymentUrl WHERE Id = @orderId;`);
+        await savePaymentAttempt(transaction, orderId, total, paymentUrl);
       }
 
       const notification = await new sql.Request(transaction)
@@ -274,7 +307,7 @@ ordersRouter.get(
           Id AS id, Status AS status, CustomerName AS customerName,
           TotalAmount AS totalAmount,
           PaymentMethod AS paymentMethod, PaymentStatus AS paymentStatus,
-          PaymentUrl AS paymentUrl,
+          PaymentUrl AS paymentUrl, StockHoldUntil AS stockHoldUntil, StockReleaseAfter AS stockReleaseAfter, StockExpiredAt AS stockExpiredAt,
           CreatedAt AS createdAt, UpdatedAt AS updatedAt
         FROM dbo.Orders
         WHERE UserId = @userId
@@ -337,7 +370,7 @@ ordersRouter.get(
           o.CouponCode AS couponCode, o.TotalAmount AS totalAmount,
           o.PaymentMethod AS paymentMethod, o.PaymentStatus AS paymentStatus,
           o.PaymentTransactionId AS paymentTransactionId, o.PaymentPaidAt AS paymentPaidAt,
-          o.PaymentUrl AS paymentUrl,
+          o.PaymentUrl AS paymentUrl, o.StockHoldUntil AS stockHoldUntil, o.StockReleaseAfter AS stockReleaseAfter, o.StockExpiredAt AS stockExpiredAt,
           o.CreatedAt AS createdAt
         FROM dbo.Orders o
         WHERE o.Id = @orderId;
@@ -392,35 +425,13 @@ ordersRouter.patch(
       if (currentOrder.Status !== "pending") {
         throw new HttpError(409, "Không thể hủy đơn hàng này.", "ORDER_CANNOT_CANCEL");
       }
+      await queueCancelledPaymentReview(transaction, orderId);
+      await releaseOrderReservation(transaction, orderId, "Hoàn kho khi khách hàng hủy đơn", req.authUser!.id);
 
       const updated = await new sql.Request(transaction)
         .input("orderId", sql.Int, orderId)
         .input("userId", sql.Int, req.authUser!.id)
         .query<{ notificationId: number }>(`
-          UPDATE b
-          SET b.Stock = b.Stock + oi.Quantity, b.UpdatedAt = SYSUTCDATETIME()
-          FROM dbo.Books b
-          INNER JOIN dbo.OrderItems oi ON oi.BookId = b.Id
-          WHERE oi.OrderId = @orderId;
-
-          INSERT INTO dbo.InventoryMovements
-            (BookId, MovementType, QuantityDelta, BalanceAfter, ReferenceType, ReferenceId, Note, ChangedByUserId)
-          SELECT
-            oi.BookId, N'return', oi.Quantity, b.Stock, N'order', @orderId,
-            N'Hoàn kho khi khách hàng hủy đơn', @userId
-          FROM dbo.OrderItems oi
-          INNER JOIN dbo.Books b ON b.Id = oi.BookId
-          WHERE oi.OrderId = @orderId;
-
-          UPDATE c SET c.UsedCount = CASE WHEN c.UsedCount > 0 THEN c.UsedCount - 1 ELSE 0 END,
-            c.UpdatedAt = SYSUTCDATETIME()
-          FROM dbo.Coupons c
-          INNER JOIN dbo.CouponRedemptions r ON r.CouponId = c.Id
-          WHERE r.OrderId = @orderId AND r.ReleasedAt IS NULL;
-
-          UPDATE dbo.CouponRedemptions SET ReleasedAt = SYSUTCDATETIME()
-          WHERE OrderId = @orderId AND ReleasedAt IS NULL;
-
           UPDATE dbo.Orders
           SET Status = N'cancelled', UpdatedAt = SYSUTCDATETIME()
           WHERE Id = @orderId;

@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { statusColor } from "../design/Reference";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { OrderTimeline } from "../components/OrderTimeline";
 import { useToast } from "../context/ToastContext";
 import { api, ApiError, downloadApiFile } from "../lib/api";
-import { currency, dateTime, statusLabel } from "../lib/format";
+import { currency, dateTime, statusLabel, paymentStatusLabel } from "../lib/format";
 import type { Order, OrderStatus } from "../types";
+import { useModalFocus } from "../lib/useModalFocus";
 
 const filters: Array<{ value: "all" | OrderStatus; label: string }> = [
   { value: "all", label: "Tất cả" },
@@ -28,6 +29,12 @@ export function OrdersPage() {
   const [cancelCandidate, setCancelCandidate] = useState<number | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState("");
+  const [vnpayAvailable, setVnpayAvailable] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
+  const paymentBusy = useRef(false);
+  const detailRequest = useRef(0);
+  const orderDialog = useModalFocus<HTMLElement>(selected !== null, () => setSelected(null), cancelling);
   const createdOrderId = (location.state as { createdOrderId?: number } | null)?.createdOrderId;
   const selectedOrderId = (location.state as { selectedOrderId?: number } | null)?.selectedOrderId;
   useEffect(() => { if (selectedOrderId) void openOrder(selectedOrderId); }, [selectedOrderId]);
@@ -47,16 +54,8 @@ export function OrdersPage() {
 
   useEffect(() => {
     void loadOrders();
+    void api<{ vnpay: boolean }>("/api/payments/methods").then(result => setVnpayAvailable(result.data.vnpay)).catch(() => setVnpayAvailable(false));
   }, []);
-
-  useEffect(() => {
-    if (!selected) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSelected(null);
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [selected]);
 
   const visibleOrders = useMemo(
     () => statusFilter === "all" ? orders : orders.filter((order) => order.status === statusFilter),
@@ -64,17 +63,20 @@ export function OrdersPage() {
   );
 
   async function openOrder(id: number) {
+    const request = ++detailRequest.current;
     setOpeningId(id);
     setError("");
+    setPaymentError('');
     try {
       const result = await api<Order>(`/api/orders/${id}`);
-      setSelected(result.data);
+      if (request === detailRequest.current) setSelected(result.data);
     } catch (cause) {
       const message = cause instanceof ApiError ? cause.message : "Không thể mở đơn hàng.";
+      if (request !== detailRequest.current) return;
       setError(message);
       notify({ tone: "error", title: "Chưa thể mở đơn", message });
     } finally {
-      setOpeningId(null);
+      if (request === detailRequest.current) setOpeningId(null);
     }
   }
 
@@ -98,6 +100,9 @@ export function OrdersPage() {
   }
 
   async function payOrder(id: number) {
+    if (paymentBusy.current) return;
+    paymentBusy.current = true; setPaying(true); setPaymentError('');
+    let redirecting = false;
     try {
       const res = await api<{ paymentUrl: string }>(`/api/payments/${id}/pay`, {
         method: "POST",
@@ -105,9 +110,14 @@ export function OrdersPage() {
       });
       if (res.data.paymentUrl) {
         window.location.href = res.data.paymentUrl;
+        redirecting = true;
+      } else {
+        setPaymentError('Chưa nhận được liên kết thanh toán. Vui lòng kiểm tra lại đơn hàng.');
       }
     } catch (cause) {
-      notify({ tone: "error", title: "Lỗi tạo thanh toán", message: cause instanceof Error ? cause.message : String(cause) });
+      setPaymentError(cause instanceof Error ? cause.message : 'Không thể mở thanh toán.');
+    } finally {
+      if (!redirecting) { paymentBusy.current = false; setPaying(false); }
     }
   }
 
@@ -117,14 +127,14 @@ export function OrdersPage() {
         <Link to="/profile" className="text-xs text-[#7a6f64] hover:text-[#c8a94d]">← Tài khoản</Link>
         <div className="flex items-center justify-between gap-4 mt-6 mb-10"><div><div className="text-[10px] tracking-[0.2em] text-[#c8a94d] uppercase font-mono mb-2">Lịch sử đơn hàng</div><h1 className="font-display text-4xl text-[#ede7dc] font-medium">Đơn hàng của tôi</h1></div><Link className="text-xs text-[#c8a94d]" to="/catalog">Tiếp tục chọn sách →</Link></div>
         {createdOrderId && <div role="status" className="bg-[#131110] border border-[#22201d] p-5 mb-6 flex justify-between text-sm"><span>Đặt hàng thành công · Đơn #{createdOrderId}</span><button onClick={() => void openOrder(createdOrderId)} className="text-[#c8a94d]">Xem đơn</button></div>}
-        {error && <div role="alert" className="text-red-400 border border-red-900 p-4 mb-6">{error}</div>}
+        {error && <div role="alert" className="text-red-400 border border-red-900 p-4 mb-6">{error} <button className="underline" onClick={() => void loadOrders()}>Thử lại</button></div>}
         <div className="flex flex-wrap gap-2 mb-6" aria-label="Lọc đơn hàng theo trạng thái">{filters.map(filter => <button key={filter.value} aria-pressed={statusFilter === filter.value} onClick={() => setStatusFilter(filter.value)} className={'px-4 py-2 rounded-sm text-xs border ' + (statusFilter === filter.value ? 'bg-[#c8a94d] border-[#c8a94d] text-[#0b0907]' : 'border-[#2b2520] text-[#7a6f64]')}>{filter.label} · {filter.value === 'all' ? orders.length : orders.filter(order => order.status === filter.value).length}</button>)}</div>
         <div className="bg-[#131110] border border-[#22201d] rounded-sm p-6">
-          {loading ? <p className="text-sm text-[#7a6f64]">Đang tải đơn hàng…</p> : visibleOrders.length === 0 ? <div className="py-12 text-center"><h2 className="font-display text-2xl text-[#ede7dc] mb-3">{orders.length === 0 ? 'Bạn chưa có đơn hàng' : 'Không có đơn ở trạng thái này'}</h2><Link className="text-sm text-[#c8a94d]" to="/catalog">Khám phá tủ sách →</Link></div> : visibleOrders.map(order => <button type="button" key={order.id} disabled={openingId === order.id} onClick={() => void openOrder(order.id)} aria-label={'Xem chi tiết đơn ' + order.id} className="reference-order-row py-5 flex items-center gap-5 w-full text-left border-b border-[#22201d] last:border-b-0 hover:bg-[#1a1715] px-4 rounded transition-colors cursor-pointer">
+          {loading ? <p className="text-sm text-[#7a6f64]">Đang tải đơn hàng…</p> : error && orders.length === 0 ? null : visibleOrders.length === 0 ? <div className="py-12 text-center"><h2 className="font-display text-2xl text-[#ede7dc] mb-3">{orders.length === 0 ? 'Bạn chưa có đơn hàng' : 'Không có đơn ở trạng thái này'}</h2><Link className="text-sm text-[#c8a94d]" to="/catalog">Khám phá tủ sách →</Link></div> : visibleOrders.map(order => <button type="button" key={order.id} disabled={openingId === order.id} onClick={() => void openOrder(order.id)} aria-label={'Xem chi tiết đơn ' + order.id} className="reference-order-row py-5 flex items-center gap-5 w-full text-left border-b border-[#22201d] last:border-b-0 hover:bg-[#1a1715] px-4 rounded transition-colors cursor-pointer">
             <span className="w-10 h-10 rounded-sm bg-[#1c1815] border border-[#22201d] flex items-center justify-center text-[#c8a94d] font-mono text-xs font-bold shrink-0">#{order.id}</span>
             <span className="flex-1 min-w-0"><span className="block text-sm text-[#ede7dc] font-medium truncate">{order.customerName}</span><span className="block text-xs text-[#7a6f64] font-mono mt-0.5">{dateTime.format(new Date(order.createdAt))}</span></span>
             <span className={'badge ' + (order.paymentStatus === 'paid' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-amber-950 text-amber-400 border border-amber-800') + ' shrink-0'}>
-              {(order.paymentMethod ? order.paymentMethod.toUpperCase() : 'COD')} · {order.paymentStatus === 'paid' ? 'Đã thanh toán' : 'Chờ thanh toán'}
+              {(order.paymentMethod ? order.paymentMethod.toUpperCase() : 'COD')} · {paymentStatusLabel[order.paymentStatus ?? 'unpaid']}
             </span>
             <span className={'badge ' + statusColor(statusLabel[order.status]) + ' shrink-0'}>{statusLabel[order.status]}</span>
             <span className="text-sm font-mono text-[#c8a94d] shrink-0 w-28 text-right">{currency.format(Number(order.totalAmount))}</span>
@@ -134,7 +144,7 @@ export function OrdersPage() {
       <div className="legacy-ui reference-dialogs">
       {selected && (
         <div className="modal-backdrop-custom" role="presentation" onMouseDown={() => setSelected(null)}>
-          <section className="detail-drawer order-detail-drawer" role="dialog" aria-modal="true" aria-labelledby="order-title" onMouseDown={(event) => event.stopPropagation()}>
+          <section ref={orderDialog} tabIndex={-1} className="detail-drawer order-detail-drawer" role="dialog" aria-modal="true" aria-labelledby="order-title" onMouseDown={(event) => event.stopPropagation()}>
             <div className="drawer-handle" aria-hidden="true" />
             <div className="d-flex justify-content-between align-items-start gap-3 mb-4">
               <div>
@@ -150,7 +160,7 @@ export function OrdersPage() {
               <div>
                 <span>Thanh toán</span>
                 <strong className={selected.paymentStatus === 'paid' ? 'text-success' : 'text-warning'}>
-                  {selected.paymentStatus === 'paid' ? 'Đã thanh toán' : 'Chờ thanh toán'}
+                  {paymentStatusLabel[selected.paymentStatus ?? 'unpaid']}
                 </strong>
               </div>
               {selected.paymentTransactionId && (
@@ -180,15 +190,17 @@ export function OrdersPage() {
               </div>
             </div>
 
-            {selected.paymentStatus !== "paid" && selected.status !== "cancelled" && (
+            {vnpayAvailable && ["unpaid", "failed"].includes(selected.paymentStatus ?? "unpaid") && !["cancelled", "completed"].includes(selected.status) && (
               <div className="payment-actions my-3 p-3 bg-dark border border-warning rounded">
                 <div className="text-warning small mb-2 font-monospace fw-bold">THANH TOÁN TRỰC TUYẾN</div>
+                {paymentError && <p role="alert" className="text-danger small">{paymentError} Nếu đã bị trừ tiền, kiểm tra trạng thái đơn trước khi thử lại.</p>}
                 <button
                   className="btn btn-warning btn-sm"
                   type="button"
+                  disabled={paying}
                   onClick={() => void payOrder(selected.id)}
                 >
-                  💳 Thanh toán qua VNPay
+                  {paying ? "Đang mở thanh toán…" : "Thanh toán qua VNPay"}
                 </button>
               </div>
             )}
@@ -218,3 +230,5 @@ export function OrdersPage() {
     </div>
   );
 }
+import "../design/legacy-scoped.css";
+import "../design/legacy-overrides.css";

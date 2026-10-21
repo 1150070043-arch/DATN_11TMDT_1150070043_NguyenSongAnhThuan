@@ -2,9 +2,14 @@ import { createApp } from "./app.js";
 import { config } from "./config.js";
 import { closePool } from "./db/pool.js";
 import { logger } from "./lib/logger.js";
-import { drainOrderNotifications } from "./lib/order-notifications.js";
+import { startOrderNotificationWorker } from "./lib/order-notifications.js";
+import { startAuthCleanupWorker } from "./lib/auth-cleanup-worker.js";
+import { startStockHoldWorker } from "./lib/stock-hold-worker.js";
 
 const app = createApp();
+let stopNotificationWorker: (() => Promise<void>) | undefined;
+let stopAuthCleanupWorker: (() => Promise<void>) | undefined;
+let stopStockHoldWorker: (() => Promise<void>) | undefined;
 const server = app.listen(config.port, config.host, () => {
   logger.info("api_started", {
     mode: config.mode,
@@ -12,16 +17,19 @@ const server = app.listen(config.port, config.host, () => {
     port: config.port,
     environment: config.nodeEnv
   });
-  void drainOrderNotifications().catch((error) => {
-    logger.error("order_notification_drain_failed", {
-      message: error instanceof Error ? error.message : String(error)
-    });
-  });
+  stopNotificationWorker = startOrderNotificationWorker();
+  stopAuthCleanupWorker = startAuthCleanupWorker();
+  stopStockHoldWorker = startStockHoldWorker();
 });
 
+let shuttingDown = false;
 async function shutdown(signal: string): Promise<void> {
+  if (shuttingDown) return;
+  shuttingDown = true;
   logger.info("api_shutdown", { signal });
+  const workersStopped = Promise.all([stopNotificationWorker?.(), stopAuthCleanupWorker?.(), stopStockHoldWorker?.()]);
   server.close(async () => {
+    await workersStopped;
     await closePool().catch(() => undefined);
     process.exit(0);
   });

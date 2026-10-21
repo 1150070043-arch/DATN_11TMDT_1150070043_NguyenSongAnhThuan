@@ -2,7 +2,9 @@ import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { ZodError } from "zod";
 import { config } from "../config.js";
 import { logger } from "./logger.js";
+import { sendAlertNonBlocking } from "./alerting.js";
 import { recordSecurityEvent } from "../security/events.js";
+import { diagnosticPath, diagnosticErrorCode } from "./diagnostics.js";
 
 export class HttpError extends Error {
   constructor(
@@ -116,18 +118,33 @@ export const errorHandler = (
 
   if (error instanceof ZodError || isMalformedJson) {
     const issues = error instanceof ZodError ? error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", ") : undefined;
-    logger.warn("validation_rejected", { path: req.originalUrl, issues });
+    logger.warn("validation_rejected", { path: diagnosticPath(req.originalUrl), issues });
     void recordSecurityEvent("VALIDATION_REJECTED", req, { code, issues });
   } else if (isUploadLimit || isBodyTooLarge) {
     void recordSecurityEvent("UPLOAD_REJECTED", req, { code });
   }
   if (status >= 500) {
+    const errorMessage = config.isSecure ? diagnosticErrorCode(error)
+      : error instanceof Error ? error.message : String(error);
     logger.error("request_failed", {
       requestId: req.requestId,
       method: req.method,
-      path: req.originalUrl,
+      path: diagnosticPath(req.originalUrl),
       status,
-      message: error instanceof Error ? error.message : String(error)
+      databaseErrorNumber: typeof raw?.number === "number" && Number.isInteger(raw.number) ? raw.number : undefined,
+      message: errorMessage
+    });
+    sendAlertNonBlocking({
+      level: "critical",
+      type: "5XX_INTERNAL_SERVER_ERROR",
+      message: `HTTP ${status} on ${req.method} ${diagnosticPath(req.originalUrl)}: ${errorMessage}`,
+      details: {
+        requestId: req.requestId,
+        method: req.method,
+        path: diagnosticPath(req.originalUrl),
+        status,
+        clientIp: req.ip
+      }
     });
   }
 

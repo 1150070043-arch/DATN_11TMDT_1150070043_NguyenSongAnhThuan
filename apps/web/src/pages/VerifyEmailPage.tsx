@@ -100,3 +100,5 @@ export function VerifyEmailPage() {
     </div>
   );
 }
+import "../design/legacy-scoped.css";
+import "../design/legacy-overrides.css";

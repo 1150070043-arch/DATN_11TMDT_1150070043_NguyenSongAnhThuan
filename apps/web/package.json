@@ -16,12 +16,15 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.8.2",
-    "vite": "^7.1.4"
+    "vite": "^7.3.7"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
+    "postcss": "^8.5.29",
+    "postcss-selector-parser": "^7.1.6",
+    "sharp": "0.35.5",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.2"
   }

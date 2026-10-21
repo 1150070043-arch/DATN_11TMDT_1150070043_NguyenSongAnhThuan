@@ -1,0 +1,39 @@
+# Isolated experiment databases on the local SQL Server. Never reset the regular databases.
+# docker compose -f docker-compose.yml -f docker-compose.audit.yml up -d ...
+services:
+  db-init-baseline:
+    environment:
+      BASELINE_DB_NAME: BookGuardAuditBaseline
+      BASELINE_DB_USER: bookguard_audit_baseline
+  db-init-secure:
+    environment:
+      SECURE_DB_NAME: BookGuardAuditSecure
+      SECURE_DB_USER: bookguard_audit_secure
+  db-init:
+    environment:
+      BASELINE_DB_NAME: BookGuardAuditBaseline
+      BASELINE_DB_USER: bookguard_audit_baseline
+      SECURE_DB_NAME: BookGuardAuditSecure
+      SECURE_DB_USER: bookguard_audit_secure
+  api-baseline:
+    environment:
+      DB_NAME: BookGuardAuditBaseline
+      DB_USER: bookguard_audit_baseline
+      VNPAY_TMN_CODE: AUDITONLY
+      VNPAY_HASH_SECRET: audit-fixture-key-not-a-real-merchant
+      SMTP_HOST: mailpit-baseline
+      SMTP_PORT: 1025
+      SMTP_SECURE: "false"
+      SMTP_USER: ""
+      SMTP_PASSWORD: ""
+  api-secure:
+    environment:
+      DB_NAME: BookGuardAuditSecure
+      DB_USER: bookguard_audit_secure
+      VNPAY_TMN_CODE: AUDITONLY
+      VNPAY_HASH_SECRET: audit-fixture-key-not-a-real-merchant
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_SECURE: "false"
+      SMTP_USER: ""
+      SMTP_PASSWORD: ""

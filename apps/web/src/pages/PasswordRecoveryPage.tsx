@@ -187,3 +187,5 @@ export function ResetPasswordPage() {
     </div>
   );
 }
+import "../design/legacy-scoped.css";
+import "../design/legacy-overrides.css";

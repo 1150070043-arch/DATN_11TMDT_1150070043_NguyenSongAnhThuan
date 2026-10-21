@@ -9,5 +9,13 @@ export async function login(page: Page, role: "customer" | "admin" = "customer")
   await page.getByLabel("Mật khẩu").fill(credentials.password);
   await page.locator('form').getByRole("button", { name: "Đăng nhập", exact: true }).click();
   await expect(page).toHaveURL(role === "admin" ? /\/admin$/ : /\/$/);
+  if (role === 'admin') {
+    await expect(page.locator('.reference-admin').getByRole('button', { name: 'Đăng xuất', exact: true })).toBeVisible();
+    return;
+  }
+  await expect(page.locator('header')).toBeVisible();
+  if (await page.getByRole('button', { name: 'Menu', exact: true }).isVisible()) {
+    await page.getByRole('button', { name: 'Menu', exact: true }).click();
+  }
   await expect(page.locator('header').getByRole('button', { name: 'Đăng xuất', exact: true })).toBeVisible();
 }

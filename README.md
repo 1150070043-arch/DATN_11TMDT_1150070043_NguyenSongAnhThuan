@@ -268,13 +268,11 @@ Mỗi lệnh dev nên chạy trong một terminal riêng.
 - [API chính](docs/api.md)
 - [Hướng dẫn triển khai](docs/deployment.md)
 - [Hệ thống thiết kế giao diện](docs/ui-design-system.md)
-- [Biên bản kiểm tra v1.5](docs/verification-v1.5.md)
-- [Biên bản kiểm tra v1.6](docs/verification-v1.6.md)
-- [Ghi chú phát hành v1.6](docs/release-v1.6.md)
-- [Ghi chú phát hành v1.5](docs/release-v1.5.md)
-- [Ghi chú phát hành v1.4](docs/release-v1.4.md)
-- [Ghi chú phát hành v1.3](docs/release-v1.3.md)
-- [Ghi chú phát hành v1.2](docs/release-v1.2.md)
+- [Vận hành Secure production](docs/operations-production-guide.md)
+- [CI và các bộ kiểm tra](docs/ci-guide.md)
+- [Dọn session và token](docs/backend-auth-maintenance-2026-10-12.md)
+- [Thanh toán và đối soát](docs/payment-upgrade-2026-10-12.md)
+- [Giữ kho và thời hạn thanh toán](docs/backend-stock-holds-2026-10-12.md)
 
 ## Cảnh báo bắt buộc
 

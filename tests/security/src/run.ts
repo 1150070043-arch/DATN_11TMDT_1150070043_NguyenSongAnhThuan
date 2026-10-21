@@ -9,6 +9,7 @@ type RawObservation = {
   protected: boolean;
   status: number;
   evidence: string;
+  requestId?: string | undefined;
 };
 
 type Observation = RawObservation & {
@@ -48,6 +49,14 @@ function tamperToken(token: string): string {
 async function measure(testCase: TestCase, baseUrl: string, mode: "baseline" | "secure"): Promise<Observation> {
   const startedAt = performance.now();
   const observation = await testCase.run(baseUrl, mode);
+  const expectedStatus: Record<string, [number, number]> = {
+    TC01: [200, 200], TC02: [201, 201], TC03: [200, 403], TC04: [200, 401],
+    TC05: [401, 429], TC06: [200, 403], TC07: [200, 403], TC08: [200, 200],
+    TC09: [200, 200], TC10: [201, 422]
+  };
+  if (observation.status !== expectedStatus[testCase.id]![mode === "baseline" ? 0 : 1]) {
+    throw new Error(`${testCase.id} ${mode}: unexpected HTTP ${observation.status}; refusing to count unrelated throttling or server errors as security evidence.`);
+  }
   return {
     ...observation,
     durationMs: Math.round((performance.now() - startedAt) * 100) / 100
@@ -69,6 +78,7 @@ const cases: TestCase[] = [
       return {
         protected: response.status !== 200 || count === 0,
         status: response.status,
+        requestId: response.headers.get("x-request-id") ?? undefined,
         evidence: `payload result count=${count}`
       };
     }
@@ -91,6 +101,7 @@ const cases: TestCase[] = [
       return {
         protected: created.status >= 400 || !reflected,
         status: created.status,
+        requestId: created.headers.get("x-request-id") ?? undefined,
         evidence: reflected ? "dangerous HTML remained in response" : "dangerous HTML removed"
       };
     }
@@ -118,6 +129,7 @@ const cases: TestCase[] = [
       return {
         protected: response.status === 403,
         status: response.status,
+        requestId: response.headers.get("x-request-id") ?? undefined,
         evidence: `state-changing request without CSRF token returned HTTP ${response.status}`
       };
     }
@@ -136,6 +148,7 @@ const cases: TestCase[] = [
       return {
         protected: response.status === 401 || response.status === 403,
         status: response.status,
+        requestId: response.headers.get("x-request-id") ?? undefined,
         evidence: `tampered token returned HTTP ${response.status}`
       };
     }
@@ -148,6 +161,7 @@ const cases: TestCase[] = [
       const session = new HttpSession(baseUrl);
       const targetEmail = `bruteforce-${Date.now()}-${mode}@bookguard.local`;
       let lastStatus = 0;
+      let requestId: string | undefined;
       for (let attempt = 0; attempt < 7; attempt += 1) {
         const response = await session.request("/api/auth/login", {
           method: "POST",
@@ -158,10 +172,12 @@ const cases: TestCase[] = [
           })
         });
         lastStatus = response.status;
+        requestId = response.headers.get("x-request-id") ?? undefined;
       }
       return {
         protected: lastStatus === 429,
         status: lastStatus,
+        requestId,
         evidence: `seventh failed login returned HTTP ${lastStatus}`
       };
     }
@@ -177,6 +193,7 @@ const cases: TestCase[] = [
       return {
         protected: response.status === 403,
         status: response.status,
+        requestId: response.headers.get("x-request-id") ?? undefined,
         evidence: `customer access to admin API returned HTTP ${response.status}`
       };
     }
@@ -192,6 +209,7 @@ const cases: TestCase[] = [
       return {
         protected: response.status === 403,
         status: response.status,
+        requestId: response.headers.get("x-request-id") ?? undefined,
         evidence: `customer A reading customer B order returned HTTP ${response.status}`
       };
     }
@@ -213,6 +231,7 @@ const cases: TestCase[] = [
       return {
         protected: protectedResult,
         status: response.status,
+        requestId: response.headers.get("x-request-id") ?? undefined,
         evidence: `allow-origin=${allowOrigin ?? "none"}, x-powered-by=${poweredBy ?? "none"}`
       };
     }
@@ -229,6 +248,7 @@ const cases: TestCase[] = [
       return {
         protected: !exposed,
         status: response.status,
+        requestId: response.headers.get("x-request-id") ?? undefined,
         evidence: exposed ? "credential field exposed" : "response DTO contains no credential field"
       };
     }
@@ -249,6 +269,7 @@ const cases: TestCase[] = [
       return {
         protected: response.status === 422,
         status: response.status,
+        requestId: response.headers.get("x-request-id") ?? undefined,
         evidence: `disallowed executable upload returned HTTP ${response.status}`
       };
     }
@@ -259,6 +280,9 @@ async function assertHealthy(baseUrl: string, expectedMode: string): Promise<voi
   const response = await new HttpSession(baseUrl).request("/api/health");
   if (response.status !== 200 || !bodyText(response).includes(expectedMode)) {
     throw new Error(`${expectedMode} API is not healthy at ${baseUrl}`);
+  }
+  if ((response.body as { data?: { auditFixture?: boolean } })?.data?.auditFixture !== true) {
+    throw new Error("Refusing to run attack fixtures against a regular database. Use docker-compose.audit.yml.");
   }
 }
 

@@ -1,0 +1,209 @@
+# ==============================================================================
+# BOOKGUARD PRODUCTION DOCKER COMPOSE
+# Chỉ chạy bản SECURE, KHÔNG mở Baseline, KHÔNG mở cổng database 1433 ra ngoài.
+# Toàn bộ lưu lượng Internet đi qua Caddy TLS Reverse Proxy (Port 80, 443).
+# ==============================================================================
+
+services:
+  # 1. Reverse Proxy TLS Caddy (Tự động cấp chứng chỉ Let's Encrypt / HSTS)
+  tls-proxy:
+    image: caddy@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      BOOKGUARD_DOMAIN: "${BOOKGUARD_DOMAIN:?Set BOOKGUARD_DOMAIN in .env.production}"
+      ACME_EMAIL: ${ACME_EMAIL:-admin@example.com}
+    volumes:
+      - ./Caddyfile.production.example:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - caddy_logs:/var/log/caddy
+    networks:
+      - secure-prod
+    depends_on:
+      api-secure:
+        condition: service_healthy
+      web-secure:
+        condition: service_healthy
+
+  # 2. Frontend React Single Page Application (Nginx nội bộ phục vụ static asset)
+  web-secure:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_SECURITY_MODE: secure
+        VITE_API_URL: ""
+        VITE_MAIL_UI_URL: ""
+    restart: unless-stopped
+    networks:
+      - secure-prod
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # 3. Backend Express API (Chạy chế độ SECURE đa tầng, ẩn hoàn toàn sau reverse proxy)
+  api-secure:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    environment:
+      NODE_ENV: production
+      SECURITY_MODE: secure
+      PORT: 4002
+      HOST: 0.0.0.0
+      TRUST_PROXY_HOPS: 1
+      COOKIE_SECURE: "true"
+      WEB_ORIGIN: "https://${BOOKGUARD_DOMAIN:?Set BOOKGUARD_DOMAIN}"
+      SQLSERVER_HOST: sqlserver
+      SQLSERVER_PORT: 1433
+      SQLSERVER_ENCRYPT: "true"
+      SQLSERVER_TRUST_CERTIFICATE: "true"
+      DB_NAME: ${SECURE_DB_NAME:-BookGuardSecure}
+      DB_USER: ${SECURE_DB_USER:-bookguard_secure}
+      DB_PASSWORD: ${SECURE_DB_PASSWORD:?Set SECURE_DB_PASSWORD}
+      JWT_SECRET: ${SECURE_JWT_SECRET:?Set SECURE_JWT_SECRET (min 32 chars)}
+      CSRF_SECRET: ${CSRF_SECRET:?Set CSRF_SECRET (min 32 chars)}
+      SECURE_UPLOAD_DIR: /app/uploads
+      REPORTS_DIR: /app/reports/generated
+      # Cấu hình SMTP thực tế (Không dùng Mailpit)
+      SMTP_HOST: "${SMTP_HOST:?Set SMTP_HOST}"
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_SECURE: ${SMTP_SECURE:-true}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM_ADDRESS: "${MAIL_FROM_ADDRESS:?Set MAIL_FROM_ADDRESS}"
+      MAIL_FROM_NAME: "${MAIL_FROM_NAME:-Thư An Bookstore}"
+      # Cấu hình Cảnh báo lỗi tức thời
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      ALERT_TELEGRAM_BOT_TOKEN: ${ALERT_TELEGRAM_BOT_TOKEN:-}
+      ALERT_TELEGRAM_CHAT_ID: ${ALERT_TELEGRAM_CHAT_ID:-}
+      ALERT_THROTTLE_SECONDS: ${ALERT_THROTTLE_SECONDS:-300}
+      ALERT_MAX_ATTEMPTS: ${ALERT_MAX_ATTEMPTS:-2}
+      ALERT_RETRY_DELAY_MS: ${ALERT_RETRY_DELAY_MS:-250}
+      ALERT_TIMEOUT_MS: ${ALERT_TIMEOUT_MS:-8000}
+      # Thời hạn phiên và token
+      PASSWORD_RESET_TTL_MINUTES: ${PASSWORD_RESET_TTL_MINUTES:-30}
+      EMAIL_VERIFICATION_TTL_HOURS: ${EMAIL_VERIFICATION_TTL_HOURS:-24}
+      ACCESS_TOKEN_TTL_MINUTES: ${ACCESS_TOKEN_TTL_MINUTES:-15}
+      SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-7}
+      AUTH_CLEANUP_ENABLED: "true"
+      AUTH_CLEANUP_INTERVAL_MINUTES: 60
+      AUTH_CLEANUP_RETENTION_DAYS: 7
+      STOCK_HOLD_ENABLED: ${STOCK_HOLD_ENABLED:-true}
+      STOCK_HOLD_MINUTES: ${STOCK_HOLD_MINUTES:-30}
+      STOCK_HOLD_GRACE_MINUTES: ${STOCK_HOLD_GRACE_MINUTES:-5}
+      STOCK_HOLD_INTERVAL_SECONDS: ${STOCK_HOLD_INTERVAL_SECONDS:-60}
+      STOCK_HOLD_BATCH_SIZE: ${STOCK_HOLD_BATCH_SIZE:-25}
+      # VNPay Cổng thanh toán thực tế (hoặc sandbox khi test)
+      VNPAY_RETURN_URL: "https://${BOOKGUARD_DOMAIN}/api/payments/vnpay-return"
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-}
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
+      VNPAY_URL: ${VNPAY_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      VNPAY_QUERY_ENABLED: ${VNPAY_QUERY_ENABLED:-false}
+      VNPAY_QUERY_URL: ${VNPAY_QUERY_URL:-https://sandbox.vnpayment.vn/merchant_webapi/api/transaction}
+      VNPAY_QUERY_TIMEOUT_MS: ${VNPAY_QUERY_TIMEOUT_MS:-8000}
+      VNPAY_QUERY_IP_ADDRESS: ${VNPAY_QUERY_IP_ADDRESS:-}
+    volumes:
+      - secure_prod_uploads:/app/uploads
+      - reports_generated:/app/reports/generated:ro
+    depends_on:
+      db-init-secure:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4002/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - secure-prod
+
+  # 4. Microsoft SQL Server 2022 (Cô lập trong private network, không expose cổng 1433)
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: ${MSSQL_PID:-Express}
+      MSSQL_SA_PASSWORD: ${SQLSERVER_SA_PASSWORD:?Set SQLSERVER_SA_PASSWORD}
+    volumes:
+      - sqlserver_prod_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    networks:
+      - secure-prod
+
+  # 5. Khởi tạo Database Migration cho Secure (Chạy 1 lần khi triển khai)
+  db-init-secure:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    environment:
+      NODE_ENV: production
+      DB_PROVISION_MODE: production
+      SECURITY_MODE: secure
+      SQLSERVER_HOST: sqlserver
+      SQLSERVER_PORT: 1433
+      SQLSERVER_SA_USER: sa
+      SQLSERVER_SA_PASSWORD: ${SQLSERVER_SA_PASSWORD:?Set SQLSERVER_SA_PASSWORD}
+      SQLSERVER_ENCRYPT: "true"
+      SQLSERVER_TRUST_CERTIFICATE: "true"
+      SECURE_DB_NAME: ${SECURE_DB_NAME:-BookGuardSecure}
+      SECURE_DB_USER: ${SECURE_DB_USER:-bookguard_secure}
+      SECURE_DB_PASSWORD: ${SECURE_DB_PASSWORD:?Set SECURE_DB_PASSWORD}
+      SECURE_UPLOAD_DIR: /app/uploads
+    command: ["node", "dist/db/cli.js", "init", "secure"]
+    volumes:
+      - secure_prod_uploads:/app/uploads
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks:
+      - secure-prod
+
+  # Explicit one-time task; not run by normal `up` and never seeds demo users.
+  create-admin:
+    profiles: ["tools"]
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    environment:
+      NODE_ENV: production
+      DB_PROVISION_MODE: production
+      SQLSERVER_HOST: sqlserver
+      SQLSERVER_PORT: 1433
+      SQLSERVER_ENCRYPT: "true"
+      SQLSERVER_TRUST_CERTIFICATE: "true"
+      SQLSERVER_SA_PASSWORD: ${SQLSERVER_SA_PASSWORD:?Set SQLSERVER_SA_PASSWORD}
+      SECURE_DB_NAME: ${SECURE_DB_NAME:-BookGuardSecure}
+      SECURE_DB_USER: ${SECURE_DB_USER:-bookguard_secure}
+      SECURE_DB_PASSWORD: ${SECURE_DB_PASSWORD:?Set SECURE_DB_PASSWORD}
+      INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:-}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-}
+    command: ["node", "dist/db/cli.js", "admin", "secure"]
+    depends_on:
+      db-init-secure:
+        condition: service_completed_successfully
+    networks:
+      - secure-prod
+
+networks:
+  secure-prod:
+    driver: bridge
+
+volumes:
+  sqlserver_prod_data:
+  secure_prod_uploads:
+  reports_generated:
+  caddy_data:
+  caddy_config:
+  caddy_logs:

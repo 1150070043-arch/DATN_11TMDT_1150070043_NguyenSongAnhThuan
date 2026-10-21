@@ -17,6 +17,11 @@ export const statusLabel: Record<string, string> = {
   cancelled: "Đã hủy"
 };
 
+export const paymentStatusLabel: Record<string, string> = {
+  unpaid: "Chờ thanh toán", paid: "Đã thanh toán", failed: "Thanh toán chưa thành công",
+  refund_pending: "Đang chờ hoàn tiền", refunded: "Đã hoàn tiền"
+};
+
 export function formatCompactDate(date: Date | string): string {
   const d = typeof date === "string" ? new Date(date) : date;
   if (isNaN(d.getTime())) return String(date);
@@ -34,4 +39,3 @@ export function formatEventTime(date: Date | string): string {
   const month = String(d.getMonth() + 1).padStart(2, "0");
   return `${time} · ${day}/${month}`;
 }
-

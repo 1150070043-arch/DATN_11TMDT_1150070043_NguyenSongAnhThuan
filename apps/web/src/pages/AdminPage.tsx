@@ -6,12 +6,14 @@ import { InventoryPanel } from "../components/admin/InventoryPanel";
 import { SecurityComparison, type SecurityReport } from "../components/admin/SecurityComparison";
 import { SecurityEventsPanel, type SecurityEventItem } from "../components/admin/SecurityEventsPanel";
 import { AuditTrailPanel, type AuditEventItem } from "../components/admin/AuditTrailPanel";
-import * as D from "../design/Reference";
+import * as D from "../design/AdminReference";
 import { toDesign } from "../design/Runtime";
 import { CouponsPanel } from "../components/admin/CouponsPanel";
+import { PaymentReviewPanel } from "../components/admin/PaymentReviewPanel";
 import { useToast } from "../context/ToastContext";
 import { api, ApiError, assetUrl } from "../lib/api";
 import { currency, dateTime, statusLabel, formatCompactDate, formatEventTime } from "../lib/format";
+import { useModalFocus } from "../lib/useModalFocus";
 import type { Book, Category, Order } from "../types";
 
 type Dashboard = DashboardInsights & {
@@ -117,6 +119,9 @@ export function AdminPage() {
     action: () => Promise<void>;
   } | null>(null);
   const [confirmBusy, setConfirmBusy] = useState(false);
+  const bookDialog = useModalFocus<HTMLFormElement>(showBookForm, () => setShowBookForm(false), savingBook);
+  const categoryDialog = useModalFocus<HTMLFormElement>(showCategoryForm, () => setShowCategoryForm(false), savingCategory);
+  const orderDialog = useModalFocus<HTMLDivElement>(selectedOrder !== null, () => setSelectedOrder(null), confirmBusy);
 
   async function runConfirmedAction() {
     if (!confirmation || confirmBusy) return;
@@ -383,7 +388,7 @@ export function AdminPage() {
               )}
             </div>
           )}
-          {tab === 'orders' && <D.AdminOrders onOpen={id => void openOrder(id)} />}
+          {tab === 'orders' && <><PaymentReviewPanel /><D.AdminOrders onOpen={id => void openOrder(id)} /></>}
           {tab === 'books' && <D.AdminBooks onCreate={openCreateBook} onEdit={id => { const book = books.find(item => item.id === id); if (book) openEditBook(book); }} />}
           {tab === 'inventory' && <InventoryPanel referenceLayout onChanged={loadAll} />}
           {tab === 'categories' && <D.AdminCategories onCreate={openCreateCategory} onEdit={slug => { const category = categories.find(item => item.slug === slug); if (category) openEditCategory(category); }} onRemove={slug => { const category = categories.find(item => item.slug === slug); if (category) void removeCategory(category); }} />}
@@ -402,6 +407,7 @@ export function AdminPage() {
           onMouseDown={() => setShowBookForm(false)}
         >
           <form
+            ref={bookDialog} role="dialog" aria-modal="true" aria-label={editingBookId ? "Chỉnh sửa thông tin sách" : "Thêm đầu sách mới"} tabIndex={-1}
             className="bg-[#0f172a] border border-slate-800 rounded-2xl p-6 sm:p-7 w-full max-w-5xl shadow-2xl text-slate-100 my-auto flex flex-col max-h-[94vh]"
             onSubmit={(event) => void saveBook(event)}
             onMouseDown={(event) => event.stopPropagation()}
@@ -685,6 +691,7 @@ export function AdminPage() {
           onMouseDown={() => setShowCategoryForm(false)}
         >
           <form
+            ref={categoryDialog} role="dialog" aria-modal="true" aria-label={editingCategoryId ? "Chỉnh sửa thể loại" : "Thêm thể loại"} tabIndex={-1}
             className="bg-[#0f172a] border border-slate-800 rounded-2xl p-6 sm:p-7 w-full max-w-lg shadow-2xl text-slate-100 my-auto flex flex-col"
             onSubmit={(event) => void saveCategory(event)}
             onMouseDown={(event) => event.stopPropagation()}
@@ -792,6 +799,7 @@ export function AdminPage() {
           <div
             className="bg-[#0f172a] border border-slate-800 rounded-2xl p-6 sm:p-8 w-full max-w-7xl shadow-2xl text-slate-100 my-auto flex flex-col max-h-[94vh]"
             role="dialog"
+            ref={orderDialog} tabIndex={-1}
             aria-modal="true"
             aria-labelledby="admin-order-title"
             onMouseDown={(event) => event.stopPropagation()}
@@ -1066,5 +1074,6 @@ export function AdminPage() {
 }
 
 
-
-
+import "../design/legacy-scoped.css";
+import "../design/legacy-overrides.css";
+import "../design/admin-reference.css";

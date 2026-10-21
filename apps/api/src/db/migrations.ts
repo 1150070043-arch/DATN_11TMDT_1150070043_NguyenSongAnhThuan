@@ -201,11 +201,88 @@ IF COL_LENGTH(N'dbo.Orders', N'PaymentUrl') IS NULL
   ALTER TABLE dbo.Orders ADD PaymentUrl NVARCHAR(1000) NULL;
 `;
 
+const reliableOperationsSql = `
+CREATE TABLE dbo.PaymentAttempts (
+  Id BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+  OrderId INT NOT NULL,
+  TxnRef NVARCHAR(100) NOT NULL UNIQUE,
+  Amount DECIMAL(18,2) NOT NULL,
+  PaymentUrl NVARCHAR(1000) NOT NULL,
+  State NVARCHAR(20) NOT NULL CONSTRAINT DF_PaymentAttempts_State DEFAULT N'pending',
+  TransactionNo NVARCHAR(100) NULL,
+  ResponseCode NVARCHAR(2) NULL,
+  NeedsReview BIT NOT NULL CONSTRAINT DF_PaymentAttempts_Review DEFAULT 0,
+  ReviewReason NVARCHAR(500) NULL,
+  RefundReference NVARCHAR(100) NULL,
+  ResolvedByUserId INT NULL,
+  ResolvedAt DATETIME2(0) NULL,
+  CreatedAt DATETIME2(0) NOT NULL CONSTRAINT DF_PaymentAttempts_Created DEFAULT SYSUTCDATETIME(),
+  UpdatedAt DATETIME2(0) NOT NULL CONSTRAINT DF_PaymentAttempts_Updated DEFAULT SYSUTCDATETIME(),
+  ExpiresAt DATETIME2(0) NOT NULL,
+  PaidAt DATETIME2(0) NULL,
+  CONSTRAINT CK_PaymentAttempts_State CHECK (State IN (N'pending', N'failed', N'paid', N'refunded')),
+  CONSTRAINT CK_PaymentAttempts_Amount CHECK (Amount > 0),
+  CONSTRAINT FK_PaymentAttempts_Orders FOREIGN KEY (OrderId) REFERENCES dbo.Orders(Id),
+  CONSTRAINT FK_PaymentAttempts_Resolver FOREIGN KEY (ResolvedByUserId) REFERENCES dbo.Users(Id)
+);
+CREATE INDEX IX_PaymentAttempts_Order ON dbo.PaymentAttempts(OrderId, Id DESC);
+CREATE INDEX IX_PaymentAttempts_Review ON dbo.PaymentAttempts(NeedsReview, CreatedAt) INCLUDE (OrderId, State);
+
+-- Preserve the last attempt from v4. Older attempts were never saved and cannot be reconstructed.
+INSERT INTO dbo.PaymentAttempts (OrderId, TxnRef, Amount, PaymentUrl, State, TransactionNo, ExpiresAt, PaidAt, CreatedAt)
+SELECT Id,
+  SUBSTRING(PaymentUrl, CHARINDEX(N'vnp_TxnRef=', PaymentUrl) + 11,
+    CHARINDEX(N'&', PaymentUrl + N'&', CHARINDEX(N'vnp_TxnRef=', PaymentUrl) + 11) - CHARINDEX(N'vnp_TxnRef=', PaymentUrl) - 11),
+  TotalAmount, PaymentUrl,
+  CASE WHEN PaymentStatus = N'paid' THEN N'paid' WHEN PaymentStatus = N'failed' THEN N'failed' ELSE N'pending' END,
+  PaymentTransactionId, DATEADD(MINUTE, 15, COALESCE(UpdatedAt, CreatedAt, SYSUTCDATETIME())), PaymentPaidAt, CreatedAt
+FROM dbo.Orders
+WHERE PaymentMethod = N'vnpay' AND PaymentUrl IS NOT NULL AND TotalAmount > 0 AND CHARINDEX(N'vnp_TxnRef=', PaymentUrl) > 0;
+
+ALTER TABLE dbo.OrderNotifications ADD
+  LeaseToken UNIQUEIDENTIFIER NULL,
+  LeaseUntil DATETIME2(0) NULL,
+  NextAttemptAt DATETIME2(0) NOT NULL CONSTRAINT DF_OrderNotifications_NextAttempt DEFAULT SYSUTCDATETIME();
+CREATE INDEX IX_OrderNotifications_Due ON dbo.OrderNotifications(DeliveryState, NextAttemptAt, Id)
+  INCLUDE (AttemptCount, LeaseUntil);
+`;
+
+const authCleanupIndexesSql = `
+ALTER TABLE dbo.UserSessions ADD InvalidAfter AS
+  (CASE WHEN RevokedAt IS NOT NULL AND RevokedAt < ExpiresAt THEN RevokedAt ELSE ExpiresAt END) PERSISTED;
+CREATE INDEX IX_UserSessions_Cleanup ON dbo.UserSessions(InvalidAfter, SessionId);
+ALTER TABLE dbo.PasswordResetTokens ADD InvalidAfter AS
+  (CASE WHEN UsedAt IS NOT NULL AND UsedAt < ExpiresAt THEN UsedAt ELSE ExpiresAt END) PERSISTED;
+CREATE INDEX IX_PasswordResetTokens_Cleanup ON dbo.PasswordResetTokens(InvalidAfter, Id);
+ALTER TABLE dbo.EmailVerificationTokens ADD InvalidAfter AS
+  (CASE WHEN UsedAt IS NOT NULL AND UsedAt < ExpiresAt THEN UsedAt ELSE ExpiresAt END) PERSISTED;
+CREATE INDEX IX_EmailVerificationTokens_Cleanup ON dbo.EmailVerificationTokens(InvalidAfter, Id);
+`;
+
+const sessionOrderingSql = `
+ALTER TABLE dbo.UserSessions ADD IssuedOrder BIGINT IDENTITY(1,1) NOT NULL;
+DROP INDEX IX_UserSessions_User_Recent ON dbo.UserSessions;
+CREATE INDEX IX_UserSessions_User_Recent ON dbo.UserSessions(UserId, CreatedAt DESC, IssuedOrder DESC)
+  INCLUDE (LastSeenAt, ExpiresAt, RevokedAt);
+`;
+
 export const migrations: readonly DatabaseMigration[] = Object.freeze([
   { version: 1, name: "core_schema_v1_4", sql: schemaSql },
   { version: 2, name: "operations_experiments_v1_5", sql: operationsAndExperimentsSql },
   { version: 3, name: "promotions_audit_v1_6", sql: promotionsAndAuditSql },
-  { version: 4, name: "payment_gateways_v1_7", sql: paymentGatewaysSql }
+  { version: 4, name: "payment_gateways_v1_7", sql: paymentGatewaysSql },
+  { version: 5, name: "reliable_payments_notifications_v1_8", sql: reliableOperationsSql },
+  { version: 6, name: "auth_cleanup_indexes_v1_9", sql: authCleanupIndexesSql },
+  { version: 7, name: "deterministic_session_order_v1_10", sql: sessionOrderingSql },
+  { version: 8, name: "bounded_stock_holds_v1_11", sql: `
+    ALTER TABLE dbo.Orders ADD StockHoldUntil DATETIME2(0) NULL,
+      StockReleaseAfter DATETIME2(0) NULL, StockExpiredAt DATETIME2(0) NULL;
+    EXEC(N'ALTER TABLE dbo.Orders ADD CONSTRAINT CK_Orders_StockHold CHECK (
+      (StockHoldUntil IS NULL AND StockReleaseAfter IS NULL) OR
+      (StockHoldUntil IS NOT NULL AND StockReleaseAfter IS NOT NULL AND StockReleaseAfter>StockHoldUntil));');
+    EXEC(N'CREATE INDEX IX_Orders_StockRelease ON dbo.Orders(StockReleaseAfter,Id)
+      INCLUDE(Status,PaymentMethod,PaymentStatus) WHERE StockReleaseAfter IS NOT NULL;');
+  ` }
 ]);
 
 export function migrationChecksum(migration: DatabaseMigration): string {

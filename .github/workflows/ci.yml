@@ -4,28 +4,181 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-
-      - name: Use Node.js 22
-        uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
-
+      - name: Record evidence start
+        run: echo "CI_STARTED_AT=$(date -u +%FT%TZ)" >> "$GITHUB_ENV"
       - name: Install locked dependencies
         run: npm ci
-
-      - name: Typecheck, unit test and build
+      - name: Reject dependency vulnerabilities
+        id: audit
+        run: npm audit --audit-level=moderate
+      - name: Typecheck, unit tests and builds
+        id: verify
         run: npm run verify
+      - name: Operations guards
+        id: operations
+        run: npm run test:operations
+      - name: Fixture isolation and artifact privacy guards
+        id: ci
+        run: npm run test:ci
+      - name: Validate workflow syntax and expressions
+        id: lint
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --location --retry 3 \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz \
+            --output "$RUNNER_TEMP/actionlint.tar.gz"
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" .github/workflows/ci.yml
+      - name: Export safe evidence
+        if: always()
+        run: npm run ci:evidence -- verify
+        env:
+          CI_AUDIT_OUTCOME: ${{ steps.audit.outcome }}
+          CI_VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+          CI_OPERATIONS_OUTCOME: ${{ steps.operations.outcome }}
+          CI_CI_OUTCOME: ${{ steps.ci.outcome }}
+          CI_LINT_OUTCOME: ${{ steps.lint.outcome }}
+      - name: Upload counts only
+        if: always()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: quality-verify
+          path: reports/ci/evidence/verify.json
+          retention-days: 7
+          include-hidden-files: false
+
+  ux:
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Record evidence start
+        run: echo "CI_STARTED_AT=$(date -u +%FT%TZ)" >> "$GITHUB_ENV"
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Install browser engines
+        id: browsers
+        run: npx playwright install --with-deps chromium webkit firefox
+      - name: Desktop UX
+        id: desktop
+        run: npm run test:ux
+      - name: Mobile and keyboard UX
+        id: mobile
+        run: npm run test:ux:mobile
+      - name: Product cards and responsive page layouts
+        id: layout
+        run: npm run test:ui:layout
+      - name: Payment UX fixtures
+        id: payments
+        run: npm run test:payments:ux
+      - name: Export safe evidence
+        if: always()
+        run: npm run ci:evidence -- ux
+      - name: Upload counts only
+        if: always()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: quality-ux
+          path: reports/ci/evidence/ux.json
+          retention-days: 7
+          include-hidden-files: false
+
+  sql:
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Record evidence start
+        run: echo "CI_STARTED_AT=$(date -u +%FT%TZ)" >> "$GITHUB_ENV"
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Build API
+        id: build
+        run: npm run build --workspace @bookguard/api
+      - name: Install Chromium
+        id: browser
+        run: npx playwright install --with-deps chromium
+      - name: Isolated SQL, auth, security, payments, stock and real UI
+        id: sql
+        run: npm run ci:sql
+      - name: Export safe evidence
+        if: always()
+        run: npm run ci:evidence -- sql
+      - name: Upload counts only
+        if: always()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: quality-sql
+          path: reports/ci/evidence/sql.json
+          retention-days: 7
+          include-hidden-files: false
+
+  production:
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Record evidence start
+        run: echo "CI_STARTED_AT=$(date -u +%FT%TZ)" >> "$GITHUB_ENV"
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Build API
+        id: build
+        run: npm run build --workspace @bookguard/api
+      - name: Provision, HTTPS, login, least privilege and restore drill
+        id: production
+        run: npm run test:operations:production
+      - name: Export safe evidence
+        if: always()
+        run: npm run ci:evidence -- production
+      - name: Upload counts only
+        if: always()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: quality-production
+          path: reports/ci/evidence/production.json
+          retention-days: 7
+          include-hidden-files: false

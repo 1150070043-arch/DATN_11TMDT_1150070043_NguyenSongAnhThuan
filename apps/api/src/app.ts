@@ -14,7 +14,9 @@ import { booksRouter } from "./routes/books.routes.js";
 import { cartRouter } from "./routes/cart.routes.js";
 import { ordersRouter } from "./routes/orders.routes.js";
 import { paymentsRouter } from "./routes/payments.routes.js";
+import { paymentOperationsRouter } from "./routes/payment-operations.routes.js";
 import { profileRouter } from "./routes/profile.routes.js";
+import { contactRouter } from "./routes/contact.routes.js";
 import { optionalAuth } from "./security/auth.js";
 import { csrfProtection } from "./security/csrf.js";
 
@@ -64,7 +66,7 @@ export function createApp() {
   app.use(csrfProtection);
 
   if (config.isSecure) {
-    app.use(["/api/auth", "/api/profile", "/api/cart", "/api/orders", "/api/admin"], (_req, res, next) => {
+    app.use(["/api/auth", "/api/profile", "/api/cart", "/api/orders", "/api/payments", "/api/admin", "/api/books"], (_req, res, next) => {
       res.setHeader("Cache-Control", "no-store, max-age=0");
       res.setHeader("Pragma", "no-cache");
       next();
@@ -82,6 +84,7 @@ export function createApp() {
           status: "ok",
           mode: config.mode,
           database: "connected",
+          auditFixture: /^BookGuardAudit(?:Baseline|Secure)$/.test(config.db.database),
           schemaVersion: Number(database.recordset[0]?.schemaVersion ?? 0),
           uptimeSeconds: Math.floor(process.uptime())
         }
@@ -111,8 +114,10 @@ export function createApp() {
   app.use("/api/orders", ordersRouter);
   app.use("/api/payments", paymentsRouter);
   app.use("/api/profile", profileRouter);
+  app.use("/api/contact", contactRouter);
   app.use("/api/admin", adminRouter);
   app.use("/api/admin", adminOperationsRouter);
+  app.use("/api/admin", paymentOperationsRouter);
 
   app.use(notFound);
   app.use(errorHandler);

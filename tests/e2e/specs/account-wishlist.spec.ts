@@ -20,8 +20,9 @@ test('wishlist persists after reload and account sections remain accessible', as
   await heart.click();
   await expect(heart).toHaveAttribute('aria-pressed',String(originallySaved));
   await page.goto('/profile', {waitUntil:'domcontentloaded'});
-  for (const tab of ['Mật khẩu','Địa chỉ','Thông báo','Bảo mật','Đơn hàng']) {
+  for (const tab of ['Mật khẩu','Địa chỉ','Bảo mật','Đơn hàng']) {
     await page.locator('main').getByRole('button',{name:tab,exact:true}).click();
     await expect(page.getByRole('heading',{name:'Cài đặt',exact:true})).toBeVisible();
   }
+  await expect(page.locator('main').getByRole('button', { name: 'Thông báo', exact: true })).toHaveCount(0);
 });

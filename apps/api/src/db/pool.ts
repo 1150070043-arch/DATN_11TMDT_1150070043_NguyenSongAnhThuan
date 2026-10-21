@@ -1,20 +1,21 @@
 import sql from "mssql";
 import { config } from "../config.js";
 import { logger } from "../lib/logger.js";
+import { ResettingConnectionPool } from "./resetting-pool.js";
 
 let poolPromise: Promise<sql.ConnectionPool> | undefined;
 
 export function getPool(): Promise<sql.ConnectionPool> {
   if (!poolPromise) {
-    const pool = new sql.ConnectionPool({
+    const pool = new ResettingConnectionPool({
       server: config.db.server,
       port: config.db.port,
       database: config.db.database,
       user: config.db.user,
       password: config.db.password,
       options: {
-        encrypt: false,
-        trustServerCertificate: true,
+        encrypt: config.db.encrypt,
+        trustServerCertificate: config.db.trustServerCertificate,
         enableArithAbort: true
       },
       pool: { min: 1, max: 10, idleTimeoutMillis: 30_000 },

@@ -2,6 +2,7 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./specs",
+  testIgnore: ["ux-regressions.spec.ts", "mobile-journey.spec.ts", "security-browser.spec.ts", "payment-ux.spec.ts", "ui-layout.spec.ts"],
   outputDir: "../../reports/playwright/artifacts",
   fullyParallel: false,
   workers: 1,

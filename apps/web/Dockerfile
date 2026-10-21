@@ -24,7 +24,9 @@ ARG VITE_SECURITY_MODE=secure
 ARG VITE_API_URL=http://localhost:4002
 COPY apps/web/nginx.conf /tmp/nginx.baseline.conf
 COPY apps/web/nginx.secure.conf /tmp/nginx.secure.conf
+COPY apps/web/nginx.secure.headers.conf /etc/nginx/bookguard-secure-headers.conf
 RUN sed -i "s|__API_URL__|${VITE_API_URL}|g" /tmp/nginx.secure.conf
+RUN sed -i "s|__API_URL__|${VITE_API_URL}|g" /etc/nginx/bookguard-secure-headers.conf
 RUN cp "/tmp/nginx.${VITE_SECURITY_MODE}.conf" /etc/nginx/conf.d/default.conf
 COPY --from=build /app/apps/web/dist /usr/share/nginx/html
 EXPOSE 80

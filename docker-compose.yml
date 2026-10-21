@@ -62,6 +62,8 @@ services:
       dockerfile: apps/api/Dockerfile
     command: ["node", "dist/db/cli.js", "init"]
     environment:
+      DB_PROVISION_MODE: lab
+      ALLOW_INSECURE_LAB: "true"
       SQLSERVER_HOST: sqlserver
       SQLSERVER_PORT: 1433
       SQLSERVER_SA_USER: sa
@@ -84,6 +86,8 @@ services:
       dockerfile: apps/api/Dockerfile
     command: ["node", "dist/db/cli.js", "init", "baseline"]
     environment:
+      DB_PROVISION_MODE: lab
+      ALLOW_INSECURE_LAB: "true"
       SQLSERVER_HOST: sqlserver
       SQLSERVER_SA_PASSWORD: ${SQLSERVER_SA_PASSWORD:?Set SQLSERVER_SA_PASSWORD in .env}
       BASELINE_DB_PASSWORD: ${BASELINE_DB_PASSWORD:?Set BASELINE_DB_PASSWORD in .env}
@@ -99,6 +103,8 @@ services:
       dockerfile: apps/api/Dockerfile
     command: ["node", "dist/db/cli.js", "init", "secure"]
     environment:
+      DB_PROVISION_MODE: lab
+      ALLOW_INSECURE_LAB: "true"
       SQLSERVER_HOST: sqlserver
       SQLSERVER_SA_PASSWORD: ${SQLSERVER_SA_PASSWORD:?Set SQLSERVER_SA_PASSWORD in .env}
       SECURE_DB_PASSWORD: ${SECURE_DB_PASSWORD:?Set SECURE_DB_PASSWORD in .env}
@@ -115,6 +121,13 @@ services:
     environment:
       NODE_ENV: production
       SECURITY_MODE: baseline
+      VNPAY_RETURN_URL: ${BASELINE_VNPAY_RETURN_URL:-http://localhost:4001/api/payments/vnpay-return}
+      VNPAY_QUERY_ENABLED: ${VNPAY_QUERY_ENABLED:-false}
+      VNPAY_QUERY_URL: ${VNPAY_QUERY_URL:-https://sandbox.vnpayment.vn/merchant_webapi/api/transaction}
+      VNPAY_QUERY_TIMEOUT_MS: ${VNPAY_QUERY_TIMEOUT_MS:-8000}
+      VNPAY_QUERY_IP_ADDRESS: ${VNPAY_QUERY_IP_ADDRESS:-}
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-}
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
       PORT: 4001
       SQLSERVER_HOST: sqlserver
       SQLSERVER_PORT: 1433
@@ -135,6 +148,16 @@ services:
       EMAIL_VERIFICATION_TTL_HOURS: ${EMAIL_VERIFICATION_TTL_HOURS:-24}
       ACCESS_TOKEN_TTL_MINUTES: ${ACCESS_TOKEN_TTL_MINUTES:-15}
       SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-7}
+      AUTH_CLEANUP_ENABLED: ${AUTH_CLEANUP_ENABLED:-true}
+      AUTH_CLEANUP_INTERVAL_MINUTES: ${AUTH_CLEANUP_INTERVAL_MINUTES:-60}
+      AUTH_CLEANUP_RETENTION_DAYS: ${AUTH_CLEANUP_RETENTION_DAYS:-7}
+      AUTH_CLEANUP_BATCH_SIZE: ${AUTH_CLEANUP_BATCH_SIZE:-500}
+      AUTH_CLEANUP_MAX_BATCHES: ${AUTH_CLEANUP_MAX_BATCHES:-10}
+      STOCK_HOLD_ENABLED: ${STOCK_HOLD_ENABLED:-true}
+      STOCK_HOLD_MINUTES: ${STOCK_HOLD_MINUTES:-30}
+      STOCK_HOLD_GRACE_MINUTES: ${STOCK_HOLD_GRACE_MINUTES:-5}
+      STOCK_HOLD_INTERVAL_SECONDS: ${STOCK_HOLD_INTERVAL_SECONDS:-60}
+      STOCK_HOLD_BATCH_SIZE: ${STOCK_HOLD_BATCH_SIZE:-25}
     ports:
       - "127.0.0.1:4001:4001"
     volumes:
@@ -160,6 +183,13 @@ services:
     environment:
       NODE_ENV: production
       SECURITY_MODE: secure
+      VNPAY_RETURN_URL: ${SECURE_VNPAY_RETURN_URL:-http://localhost:4002/api/payments/vnpay-return}
+      VNPAY_QUERY_ENABLED: ${VNPAY_QUERY_ENABLED:-false}
+      VNPAY_QUERY_URL: ${VNPAY_QUERY_URL:-https://sandbox.vnpayment.vn/merchant_webapi/api/transaction}
+      VNPAY_QUERY_TIMEOUT_MS: ${VNPAY_QUERY_TIMEOUT_MS:-8000}
+      VNPAY_QUERY_IP_ADDRESS: ${VNPAY_QUERY_IP_ADDRESS:-}
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-}
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
       PORT: 4002
       SQLSERVER_HOST: sqlserver
       SQLSERVER_PORT: 1433
@@ -171,19 +201,27 @@ services:
       WEB_ORIGIN: http://localhost:5174
       SECURE_UPLOAD_DIR: /app/uploads
       REPORTS_DIR: /app/reports/generated
-      SMTP_HOST: ${SMTP_HOST:-mailpit}
-      SMTP_PORT: ${SMTP_PORT:-1025}
-      SMTP_SECURE: ${SMTP_SECURE:-false}
-      SMTP_USER: ${SMTP_USER:-}
-      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_HOST: ${DOCKER_SMTP_HOST:-mailpit}
+      SMTP_PORT: ${DOCKER_SMTP_PORT:-1025}
+      SMTP_SECURE: ${DOCKER_SMTP_SECURE:-false}
+      SMTP_USER: ${DOCKER_SMTP_USER:-}
+      SMTP_PASSWORD: ${DOCKER_SMTP_PASSWORD:-}
       MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-no-reply@bookguard.local}
       MAIL_FROM_NAME: "${MAIL_FROM_NAME:-Thư An Bookstore}"
       PASSWORD_RESET_TTL_MINUTES: ${PASSWORD_RESET_TTL_MINUTES:-30}
       EMAIL_VERIFICATION_TTL_HOURS: ${EMAIL_VERIFICATION_TTL_HOURS:-24}
       ACCESS_TOKEN_TTL_MINUTES: ${ACCESS_TOKEN_TTL_MINUTES:-15}
       SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-7}
-      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-2QXUI4J4}
-      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-RAHQxnhjxUk1ambjhWrhAAMPfNxVuErw}
+      AUTH_CLEANUP_ENABLED: ${AUTH_CLEANUP_ENABLED:-true}
+      AUTH_CLEANUP_INTERVAL_MINUTES: ${AUTH_CLEANUP_INTERVAL_MINUTES:-60}
+      AUTH_CLEANUP_RETENTION_DAYS: ${AUTH_CLEANUP_RETENTION_DAYS:-7}
+      AUTH_CLEANUP_BATCH_SIZE: ${AUTH_CLEANUP_BATCH_SIZE:-500}
+      AUTH_CLEANUP_MAX_BATCHES: ${AUTH_CLEANUP_MAX_BATCHES:-10}
+      STOCK_HOLD_ENABLED: ${STOCK_HOLD_ENABLED:-true}
+      STOCK_HOLD_MINUTES: ${STOCK_HOLD_MINUTES:-30}
+      STOCK_HOLD_GRACE_MINUTES: ${STOCK_HOLD_GRACE_MINUTES:-5}
+      STOCK_HOLD_INTERVAL_SECONDS: ${STOCK_HOLD_INTERVAL_SECONDS:-60}
+      STOCK_HOLD_BATCH_SIZE: ${STOCK_HOLD_BATCH_SIZE:-25}
       VNPAY_URL: ${VNPAY_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
       PAYOS_CLIENT_ID: ${PAYOS_CLIENT_ID:-}
       PAYOS_API_KEY: ${PAYOS_API_KEY:-}
@@ -283,7 +321,7 @@ services:
   performance-baseline:
     networks: [baseline]
     profiles: ["tools"]
-    image: grafana/k6:latest
+    image: grafana/k6@sha256:e66db15b860113878fa74670e31f5e274830b7b6e42c8bff28b2f2d86a257603
     environment:
       BASE_URL: http://api-baseline:4001
       TEST_MODE: baseline
@@ -291,7 +329,7 @@ services:
     volumes:
       - ./tests/performance:/scripts:ro
       - ./reports/generated:/reports
-    command: ["run", "/scripts/bookstore.js"]
+    command: ["run", "/scripts/commerce.js"]
     depends_on:
       api-baseline:
         condition: service_healthy
@@ -299,7 +337,7 @@ services:
   performance-secure:
     networks: [secure]
     profiles: ["tools"]
-    image: grafana/k6:latest
+    image: grafana/k6@sha256:e66db15b860113878fa74670e31f5e274830b7b6e42c8bff28b2f2d86a257603
     environment:
       BASE_URL: http://api-secure:4002
       TEST_MODE: secure
@@ -307,7 +345,7 @@ services:
     volumes:
       - ./tests/performance:/scripts:ro
       - ./reports/generated:/reports
-    command: ["run", "/scripts/bookstore.js"]
+    command: ["run", "/scripts/commerce.js"]
     depends_on:
       api-secure:
         condition: service_healthy
@@ -315,7 +353,7 @@ services:
   zap-scan:
     networks: [secure]
     profiles: ["dast"]
-    image: ghcr.io/zaproxy/zaproxy:stable
+    image: ghcr.io/zaproxy/zaproxy@sha256:7aaa659b0d43078febd82e29bad112285c370727e86ab8340444220e17d9f0d2
     user: root
     command:
       - zap-baseline.py

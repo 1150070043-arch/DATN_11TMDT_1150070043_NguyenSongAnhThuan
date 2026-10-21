@@ -58,6 +58,7 @@ test("delivers a multipart message through a real SMTP conversation", async () =
     await sendMail(
       {
         to: "student@example.test",
+        replyTo: "reader@example.test",
         subject: "SMTP integration check",
         text: "Nội dung văn bản",
         html: "<p>Nội dung HTML</p>"
@@ -67,6 +68,7 @@ test("delivers a multipart message through a real SMTP conversation", async () =
 
     assert.match(transcript, /MAIL FROM:<no-reply@bookguard\.local>/);
     assert.match(transcript, /RCPT TO:<student@example\.test>/);
+    assert.match(transcript, /Reply-To: <reader@example\.test>/);
     assert.match(transcript, /Content-Type: multipart\/alternative/);
     assert.match(transcript, /Content-Transfer-Encoding: base64/);
   } finally {
@@ -90,4 +92,8 @@ test("order status email contains order data and escapes customer HTML", () => {
   assert.match(content.text, /428\.000/);
   assert.doesNotMatch(content.html, /<img src=x/);
   assert.match(content.html, /&lt;img src=x onerror=alert\(1\)&gt;/);
+});
+
+test("rejects reply-to header injection before connecting to SMTP", async () => {
+  await assert.rejects(sendMail({ to: 'admin@example.test', replyTo: 'reader@example.test\r\nBcc:other@example.test', subject: 'Contact', text: '', html: '' }), /Invalid reply-to/);
 });

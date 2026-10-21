@@ -4,7 +4,7 @@ import { migrationChecksum, migrations, validateMigrations } from "./migrations.
 
 test("database migrations are ordered, named and immutable by checksum", () => {
   assert.doesNotThrow(() => validateMigrations());
-  assert.deepEqual(migrations.map((migration) => migration.version), [1, 2, 3, 4]);
+  assert.deepEqual(migrations.map((migration) => migration.version), [1, 2, 3, 4, 5, 6, 7, 8]);
   for (const migration of migrations) {
     assert.match(migrationChecksum(migration), /^[a-f0-9]{64}$/);
   }

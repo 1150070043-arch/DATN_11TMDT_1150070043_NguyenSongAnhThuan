@@ -6,6 +6,7 @@ import { config } from "../config.js";
 import { getPool, sql } from "../db/pool.js";
 import { asyncHandler, HttpError } from "../lib/http.js";
 import { logger } from "../lib/logger.js";
+import { retrySqlDeadlock } from "../lib/sql-deadlock-retry.js";
 import { sendEmailVerificationEmail, sendPasswordResetEmail } from "../lib/mailer.js";
 import {
   loginRateLimit,
@@ -366,11 +367,6 @@ authRouter.post(
             SET UsedAt = SYSUTCDATETIME()
             WHERE UserId = @userId AND UsedAt IS NULL;
 
-            DELETE FROM dbo.PasswordResetTokens
-            WHERE UserId = @userId
-              AND (ExpiresAt < DATEADD(DAY, -1, SYSUTCDATETIME())
-                OR UsedAt < DATEADD(DAY, -1, SYSUTCDATETIME()));
-
             INSERT INTO dbo.PasswordResetTokens (UserId, TokenHash, ExpiresAt)
             VALUES (
               @userId,
@@ -694,53 +690,66 @@ authRouter.post(
     }
 
     const refresh = config.isSecure ? createRefreshCredential() : null;
-    const transaction = new sql.Transaction(pool);
-    await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
-    let sessionId = "";
-    try {
-      sessionId = await createSession(
-        new sql.Request(transaction),
-        user.Id,
-        clientMetadata(req)
-      );
-      if (refresh) {
-        await storeRefreshCredential(
+    const sessionId = await retrySqlDeadlock(async () => {
+      const transaction = new sql.Transaction(pool);
+      // Serialize session limits for this user without locking ranges belonging to
+      // other users. SERIALIZABLE cleanup of the whole token table deadlocked two
+      // concurrent logins through UserSessions/RefreshTokens indexes.
+      await transaction.begin(sql.ISOLATION_LEVEL.READ_COMMITTED);
+      let sessionId = "";
+      try {
+        const current = await new sql.Request(transaction)
+          .input("userId", sql.Int, user.Id).input("secret", sql.NVarChar(255), user.PasswordSecret)
+          .input("version", sql.Int, user.TokenVersion).input("secure", sql.Bit, config.isSecure)
+          .query(`SELECT Id FROM dbo.Users WITH (UPDLOCK, HOLDLOCK)
+            WHERE Id = @userId AND PasswordSecret = @secret AND TokenVersion = @version
+              AND IsActive = 1 AND (@secure = 0 OR EmailVerifiedAt IS NOT NULL);`);
+        if (!current.recordset.length) throw new HttpError(401, "Thông tin đăng nhập đã thay đổi. Vui lòng đăng nhập lại.", "CREDENTIAL_CHANGED");
+        sessionId = await createSession(
           new sql.Request(transaction),
           user.Id,
-          sessionId,
-          refresh.hash
+          clientMetadata(req)
         );
+        if (refresh) {
+          await storeRefreshCredential(
+            new sql.Request(transaction),
+            user.Id,
+            sessionId,
+            refresh.hash
+          );
+        }
+        await new sql.Request(transaction)
+          .input("userId", sql.Int, user.Id)
+          .input("currentSessionId", sql.UniqueIdentifier, sessionId)
+          .query(`
+            DECLARE @revoked TABLE (SessionId UNIQUEIDENTIFIER PRIMARY KEY);
+            ;WITH OlderSessions AS (
+              SELECT SessionId,
+                     ROW_NUMBER() OVER (ORDER BY CASE WHEN SessionId = @currentSessionId THEN 0 ELSE 1 END, CreatedAt DESC, IssuedOrder DESC) AS position
+              FROM dbo.UserSessions
+              WHERE UserId = @userId AND RevokedAt IS NULL AND ExpiresAt > SYSUTCDATETIME()
+            )
+            UPDATE s
+            SET RevokedAt = SYSUTCDATETIME()
+            OUTPUT INSERTED.SessionId INTO @revoked
+            FROM dbo.UserSessions s
+            INNER JOIN OlderSessions ranked ON ranked.SessionId = s.SessionId
+            WHERE ranked.position > 10 AND s.SessionId <> @currentSessionId;
+
+            UPDATE rt
+            SET RevokedAt = COALESCE(rt.RevokedAt, SYSUTCDATETIME())
+            FROM dbo.RefreshTokens rt
+            INNER JOIN @revoked s ON s.SessionId = rt.SessionId
+            WHERE rt.RevokedAt IS NULL
+            OPTION (LOOP JOIN);
+          `);
+        await transaction.commit();
+      } catch (error) {
+        await transaction.rollback().catch(() => undefined);
+        throw error;
       }
-      await new sql.Request(transaction)
-        .input("userId", sql.Int, user.Id)
-        .input("currentSessionId", sql.UniqueIdentifier, sessionId)
-        .query(`
-          ;WITH OlderSessions AS (
-            SELECT SessionId,
-                   ROW_NUMBER() OVER (ORDER BY CreatedAt DESC, SessionId DESC) AS position
-            FROM dbo.UserSessions
-            WHERE UserId = @userId AND RevokedAt IS NULL AND ExpiresAt > SYSUTCDATETIME()
-          )
-          UPDATE s
-          SET RevokedAt = SYSUTCDATETIME()
-          FROM dbo.UserSessions s
-          INNER JOIN OlderSessions ranked ON ranked.SessionId = s.SessionId
-          WHERE ranked.position > 10 AND s.SessionId <> @currentSessionId;
-
-          UPDATE rt
-          SET RevokedAt = COALESCE(rt.RevokedAt, SYSUTCDATETIME())
-          FROM dbo.RefreshTokens rt
-          INNER JOIN dbo.UserSessions s ON s.SessionId = rt.SessionId
-          WHERE s.UserId = @userId AND s.RevokedAt IS NOT NULL AND rt.RevokedAt IS NULL;
-
-          DELETE TOP (500) FROM dbo.RefreshTokens
-          WHERE ExpiresAt < DATEADD(DAY, -1, SYSUTCDATETIME());
-        `);
-      await transaction.commit();
-    } catch (error) {
-      await transaction.rollback();
-      throw error;
-    }
+      return sessionId;
+    });
     const token = issueAccessToken(authUser(user, sessionId));
     setSessionCookie(res, token);
     if (refresh) setRefreshCookie(res, refresh.token);
@@ -950,7 +959,7 @@ authRouter.get(
         FROM dbo.UserSessions
         WHERE UserId = @userId
           AND CreatedAt > DATEADD(DAY, -30, SYSUTCDATETIME())
-        ORDER BY CreatedAt DESC
+        ORDER BY CreatedAt DESC, IssuedOrder DESC
       `);
     res.json({ data: result.recordset });
   })

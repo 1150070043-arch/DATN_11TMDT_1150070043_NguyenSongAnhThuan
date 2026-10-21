@@ -1,0 +1,17 @@
+{
+  auto_https disable_redirects
+}
+
+https://localhost {
+  tls internal
+  header Strict-Transport-Security "max-age=86400"
+  handle /api/* {
+    reverse_proxy api-secure:4002
+  }
+  handle /uploads/* {
+    reverse_proxy api-secure:4002
+  }
+  handle {
+    reverse_proxy web-secure-https:80
+  }
+}

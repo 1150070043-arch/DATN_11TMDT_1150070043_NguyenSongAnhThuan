@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useToast } from "../../context/ToastContext";
 import { api, ApiError } from "../../lib/api";
 import { dateTime } from "../../lib/format";
-import { AdminInventory } from "../../design/Reference";
+import { AdminInventory } from "../../design/AdminReference";
 
 type InventoryBook = {
   id: number;

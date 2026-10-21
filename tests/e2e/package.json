@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "playwright test",
+    "test:security:browser": "node --env-file=../../.env ../../node_modules/playwright/cli.js test --config security-browser.config.ts",
     "test:ui": "playwright test --ui",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

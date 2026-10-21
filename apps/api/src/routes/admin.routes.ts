@@ -9,6 +9,8 @@ import {
 import { calculateAdjustedStock } from "../domain/inventory.js";
 import { asyncHandler, HttpError } from "../lib/http.js";
 import { deliverOrderNotificationLater } from "../lib/order-notifications.js";
+import { queueCancelledPaymentReview } from "../lib/payment-attempts.js";
+import { releaseOrderReservation } from "../lib/order-reservation.js";
 import { requireAdmin } from "../security/auth.js";
 import { recordSecurityEvent } from "../security/events.js";
 
@@ -290,7 +292,9 @@ adminRouter.get(
       SELECT
         o.Id AS id, o.UserId AS userId, u.Email AS customerEmail,
         o.CustomerName AS customerName, o.Status AS status,
-        o.TotalAmount AS totalAmount, o.CreatedAt AS createdAt
+        o.TotalAmount AS totalAmount, o.CreatedAt AS createdAt,
+        o.PaymentMethod AS paymentMethod,o.PaymentStatus AS paymentStatus,
+        o.StockHoldUntil AS stockHoldUntil,o.StockReleaseAfter AS stockReleaseAfter,o.StockExpiredAt AS stockExpiredAt
       FROM dbo.Orders o
       INNER JOIN dbo.Users u ON u.Id = o.UserId
       ORDER BY o.CreatedAt DESC
@@ -329,8 +333,8 @@ adminRouter.patch(
     try {
       const current = await new sql.Request(transaction)
         .input("orderId", sql.Int, orderId)
-        .query<{ Status: string }>(`
-          SELECT Status
+        .query<{ Status: string; PaymentMethod: string; PaymentStatus: string }>(`
+          SELECT Status, PaymentMethod, PaymentStatus
           FROM dbo.Orders WITH (UPDLOCK, HOLDLOCK)
           WHERE Id = @orderId
         `);
@@ -351,33 +355,14 @@ adminRouter.patch(
         );
       }
 
+      const payment = current.recordset[0]!;
+      if (["shipping", "completed"].includes(body.status) && payment.PaymentMethod === "vnpay" && payment.PaymentStatus !== "paid") {
+        throw new HttpError(409, "Đơn VNPay cần được xác nhận thanh toán trước khi giao hàng.", "PAYMENT_NOT_CONFIRMED");
+      }
+
       if (body.status === "cancelled") {
-        await new sql.Request(transaction)
-          .input("orderId", sql.Int, orderId)
-          .input("changedBy", sql.Int, req.authUser!.id)
-          .query(`
-            UPDATE b
-            SET b.Stock = b.Stock + oi.Quantity, b.UpdatedAt = SYSUTCDATETIME()
-            FROM dbo.Books b
-            INNER JOIN dbo.OrderItems oi ON oi.BookId = b.Id
-            WHERE oi.OrderId = @orderId;
-
-            INSERT INTO dbo.InventoryMovements
-              (BookId, MovementType, QuantityDelta, BalanceAfter, ReferenceType, ReferenceId, Note, ChangedByUserId)
-            SELECT
-              oi.BookId, N'return', oi.Quantity, b.Stock, N'order', @orderId,
-              N'Hoàn kho khi quản trị viên hủy đơn', @changedBy
-            FROM dbo.OrderItems oi
-            INNER JOIN dbo.Books b ON b.Id = oi.BookId
-            WHERE oi.OrderId = @orderId;
-
-            UPDATE c SET c.UsedCount = CASE WHEN c.UsedCount > 0 THEN c.UsedCount - 1 ELSE 0 END,
-              c.UpdatedAt = SYSUTCDATETIME()
-            FROM dbo.Coupons c INNER JOIN dbo.CouponRedemptions r ON r.CouponId = c.Id
-            WHERE r.OrderId = @orderId AND r.ReleasedAt IS NULL;
-            UPDATE dbo.CouponRedemptions SET ReleasedAt = SYSUTCDATETIME()
-            WHERE OrderId = @orderId AND ReleasedAt IS NULL;
-          `);
+        await queueCancelledPaymentReview(transaction, orderId);
+        await releaseOrderReservation(transaction, orderId, "Ho?n kho khi qu?n tr? vi?n h?y ??n", req.authUser!.id);
       }
 
       const updated = await new sql.Request(transaction)

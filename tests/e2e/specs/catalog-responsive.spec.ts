@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("catalog search works at mobile width without horizontal overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/catalog", { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole("heading", { name: "Tất cả đầu sách" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sách", exact: true })).toBeVisible();
   const search = page.getByLabel("Tìm theo tên sách hoặc tác giả");
   await search.fill("Clean Code");
   await search.press("Enter");

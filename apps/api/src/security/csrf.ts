@@ -24,8 +24,8 @@ export function createCsrfToken(): string {
   return `${nonce}.${signature(nonce)}`;
 }
 
-function validToken(token: unknown): token is string {
-  if (typeof token !== "string") return false;
+export function validCsrfToken(token: unknown): token is string {
+  if (typeof token !== "string" || !/^[A-Za-z0-9_-]{32}\.[A-Za-z0-9_-]{43}$/.test(token)) return false;
   const [nonce, suppliedSignature] = token.split(".");
   if (!nonce || !suppliedSignature) return false;
   const expected = signature(nonce);
@@ -51,7 +51,21 @@ export function setCsrfCookie(res: Response): string | undefined {
 }
 
 export const csrfProtection: RequestHandler = async (req, _res, next) => {
-  if (!config.isSecure || SAFE_METHODS.has(req.method) || PUBLIC_PATHS.has(req.path)) {
+  if (!config.isSecure || SAFE_METHODS.has(req.method)) {
+    next();
+    return;
+  }
+
+  // CORS only controls browser access to responses. Reject foreign-origin
+  // writes themselves, including login CSRF on the token-exempt public routes.
+  const origin = req.header("origin");
+  if ((origin !== undefined && origin !== config.webOrigin) ||
+      (origin === undefined && req.header("sec-fetch-site") === "cross-site")) {
+    await recordSecurityEvent("CSRF_BLOCKED", req, { reason: "untrusted_origin" });
+    next(new HttpError(403, "Yêu cầu bảo mật không hợp lệ. Vui lòng tải lại trang.", "CSRF_REJECTED"));
+    return;
+  }
+  if (PUBLIC_PATHS.has(req.path)) {
     next();
     return;
   }
@@ -59,8 +73,8 @@ export const csrfProtection: RequestHandler = async (req, _res, next) => {
   const cookieToken = req.cookies?.[CSRF_COOKIE] as unknown;
   const headerToken = req.header("x-csrf-token");
   if (
-    !validToken(cookieToken) ||
-    !validToken(headerToken) ||
+    !validCsrfToken(cookieToken) ||
+    !validCsrfToken(headerToken) ||
     cookieToken !== headerToken
   ) {
     await recordSecurityEvent("CSRF_BLOCKED", req, { hasCookie: Boolean(cookieToken), hasHeader: Boolean(headerToken) });

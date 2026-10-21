@@ -1,102 +1,149 @@
 param(
   [ValidateSet("all", "security", "functional", "performance")]
   [string]$Suite = "all",
-  [switch]$SkipReset
+  [ValidateRange(3, 10)][int]$Repetitions = 3
 )
 
 $ErrorActionPreference = "Stop"
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
-$ReportsDir = Join-Path $ProjectRoot "reports\generated"
-New-Item -ItemType Directory -Path $ReportsDir -Force | Out-Null
 Set-Location $ProjectRoot
+$ReportsDir = Join-Path $ProjectRoot "reports\generated"
+$WarmupDir = Join-Path $ReportsDir "warmup"
+$ExperimentBatch = [datetime]::UtcNow.ToString("yyyyMMddTHHmmssZ")
+New-Item -ItemType Directory -Path $WarmupDir -Force | Out-Null
+$ComposeFiles = @("-f", "docker-compose.yml", "-f", "docker-compose.audit.yml")
 
-function Invoke-CheckedCompose {
+function Invoke-Compose {
   param([string[]]$Arguments)
-  & docker compose @Arguments
-  if ($LASTEXITCODE -ne 0) {
-    throw "docker compose failed: $($Arguments -join ' ')"
-  }
+  & docker compose @ComposeFiles @Arguments
+  if ($LASTEXITCODE -ne 0) { throw "docker compose failed: $($Arguments -join ' ')" }
 }
-
-function Convert-MemoryToMb {
+function Invoke-Npm {
+  param([string]$Script)
+  & npm run $Script
+  if ($LASTEXITCODE -ne 0) { throw "npm run $Script failed" }
+}
+function Reset-AuditData {
+  Invoke-Compose @("stop", "api-baseline", "api-secure")
+  & node --env-file=.env scripts/audit-db.mjs --reset
+  if ($LASTEXITCODE -ne 0) { throw "Isolated audit reset failed" }
+}
+function Wait-Api {
+  param([string]$Mode)
+  $port = if ($Mode -eq "secure") { 4002 } else { 4001 }
+  for ($attempt = 0; $attempt -lt 30; $attempt++) {
+    try { $health = Invoke-RestMethod "http://127.0.0.1:$port/api/health" -TimeoutSec 5; if ($health.data.mode -eq $Mode -and $health.data.auditFixture) { return } } catch {}
+    Start-Sleep -Seconds 1
+  }
+  throw "$Mode API did not become healthy"
+}
+function Memory-Mb {
   param([string]$Value)
   $number = [double]::Parse(($Value -replace '[^0-9.]', ''), [Globalization.CultureInfo]::InvariantCulture)
-  if ($Value -match 'GiB') { return $number * 1024 }
-  if ($Value -match 'KiB') { return $number / 1024 }
-  if ($Value -match 'B$' -and $Value -notmatch 'MiB|GiB|KiB') { return $number / 1MB }
-  return $number
+  if ($Value -match "GiB") { return $number * 1024 }
+  if ($Value -match "KiB") { return $number / 1024 }
+  if ($Value -match "MiB") { return $number }
+  return $number / 1MB
 }
-
+function Resource-Summary {
+  param($Samples)
+  return [ordered]@{
+    cpuPercent = [math]::Round(($Samples | Measure-Object -Property cpu -Average).Average, 3)
+    memoryMb = [math]::Round(($Samples | Measure-Object -Property memory -Maximum).Maximum, 3)
+    sampleCount = $Samples.Count
+    cpuAggregation = "average"
+    memoryAggregation = "peak"
+  }
+}
 function Invoke-PerformanceRun {
-  param(
-    [ValidateSet("baseline", "secure")][string]$Mode
-  )
-
-  $apiService = "api-$Mode"
-  $testService = "performance-$Mode"
-  $containerId = (& docker compose ps -q $apiService).Trim()
-  if (-not $containerId) { throw "$apiService is not running." }
-
+  param([string]$Mode, [int]$Iteration)
+  Reset-AuditData
+  Invoke-Compose @("up", "-d", "--no-deps", "api-$Mode")
+  Wait-Api $Mode
+  # Warm the same catalog/database path without changing orders or the measured report.
+  Invoke-Compose @("run", "--rm", "--no-deps", "-e", "WARMUP=true", "-e", "DURATION=10s", "-e", "OUTPUT_FILE=/reports/warmup/k6-$Mode-$Iteration.json", "performance-$Mode")
+  $apiId = (& docker compose @ComposeFiles ps -q "api-$Mode").Trim()
+  $sqlId = (& docker compose @ComposeFiles ps -q sqlserver).Trim()
   $job = Start-Job -ScriptBlock {
-    param($WorkingDirectory, $Service)
-    Set-Location $WorkingDirectory
-    & docker compose --profile tools run --rm $Service
-    if ($LASTEXITCODE -ne 0) { throw "$Service failed with exit code $LASTEXITCODE" }
-  } -ArgumentList $ProjectRoot, $testService
-
-  $cpuSamples = [Collections.Generic.List[double]]::new()
-  $memorySamples = [Collections.Generic.List[double]]::new()
+    param($Root, $Mode)
+    Set-Location $Root
+    # Compose writes normal progress to stderr; turn it into output rather than a
+    # PowerShell RemoteException. The native exit code remains the failure gate.
+    & docker compose -f docker-compose.yml -f docker-compose.audit.yml run --rm --no-deps "performance-$Mode" 2>&1 | ForEach-Object { $_.ToString() }
+    if ($LASTEXITCODE -ne 0) { throw "k6 $Mode failed with exit code $LASTEXITCODE" }
+  } -ArgumentList $ProjectRoot, $Mode
+  $apiSamples = [Collections.Generic.List[object]]::new()
+  $sqlSamples = [Collections.Generic.List[object]]::new()
   try {
     while ($job.State -in @("NotStarted", "Running")) {
-      $raw = & docker stats --no-stream --format "{{json .}}" $containerId 2>$null
-      if ($LASTEXITCODE -eq 0 -and $raw) {
-        $sample = $raw | ConvertFrom-Json
-        $cpuSamples.Add([double]::Parse(($sample.CPUPerc -replace '%', ''), [Globalization.CultureInfo]::InvariantCulture))
-        $usedMemory = ($sample.MemUsage -split '/')[0].Trim()
-        $memorySamples.Add((Convert-MemoryToMb $usedMemory))
+      $raw = & docker stats --no-stream --format "{{json .}}" $apiId $sqlId 2>$null
+      if ($LASTEXITCODE -eq 0) {
+        foreach ($line in $raw) {
+          $sample = $line | ConvertFrom-Json
+          $value = [pscustomobject]@{
+            cpu = [double]::Parse(($sample.CPUPerc -replace "%", ""), [Globalization.CultureInfo]::InvariantCulture)
+            memory = Memory-Mb (($sample.MemUsage -split "/")[0].Trim())
+          }
+          if ($apiId.StartsWith($sample.ID)) { $apiSamples.Add($value) }
+          elseif ($sqlId.StartsWith($sample.ID)) { $sqlSamples.Add($value) }
+        }
       }
       Start-Sleep -Seconds 2
     }
-    Receive-Job $job -Wait
-  }
-  finally {
-    Remove-Job $job -Force -ErrorAction SilentlyContinue
-  }
-
+    Receive-Job $job -Wait -ErrorAction Stop
+    if ($job.State -eq "Failed") { throw "k6 job failed" }
+  } finally { Remove-Job $job -Force -ErrorAction SilentlyContinue }
+  if (-not $apiSamples.Count -or -not $sqlSamples.Count) { throw "Missing API or SQL resource samples" }
   $reportPath = Join-Path $ReportsDir "k6-$Mode.json"
-  $report = Get-Content $reportPath -Raw | ConvertFrom-Json
-  $averageCpu = if ($cpuSamples.Count) { ($cpuSamples | Measure-Object -Average).Average } else { $null }
-  $peakMemory = if ($memorySamples.Count) { ($memorySamples | Measure-Object -Maximum).Maximum } else { $null }
-  $report | Add-Member -Force -NotePropertyName resources -NotePropertyValue ([ordered]@{
-    cpuPercent = if ($null -eq $averageCpu) { $null } else { [math]::Round($averageCpu, 3) }
-    memoryMb = if ($null -eq $peakMemory) { $null } else { [math]::Round($peakMemory, 3) }
-    sampleCount = $cpuSamples.Count
-    cpuAggregation = "average"
-    memoryAggregation = "peak"
+  $report = Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+  if (-not $report.thresholdsPassed) { throw "k6 thresholds failed" }
+  $resources = Resource-Summary $apiSamples
+  $resources["sqlServer"] = Resource-Summary $sqlSamples
+  $report | Add-Member -Force -NotePropertyName resources -NotePropertyValue $resources
+  $report | Add-Member -Force -NotePropertyName experiment -NotePropertyValue ([ordered]@{
+    iteration = $Iteration; repetitions = $Repetitions; seed = "36 books / 60 orders"
+    batch = $ExperimentBatch
+    warmupSeconds = 10; activeApi = $Mode; database = "isolated audit database"
+    sqlServerShared = $true; fixtureResetBeforeEachRun = $true
   })
-  $json = $report | ConvertTo-Json -Depth 20
-  Set-Content -Path $reportPath -Value $json -Encoding utf8
-  $timestamp = ([datetime]$report.generatedAt).ToUniversalTime().ToString("yyyyMMddTHHmmssZ")
-  Set-Content -Path (Join-Path $ReportsDir "k6-$Mode-$timestamp.json") -Value $json -Encoding utf8
+  $json = $report | ConvertTo-Json -Depth 30
+  Set-Content -LiteralPath $reportPath -Value $json -Encoding UTF8
+  $stamp = ([datetime]$report.generatedAt).ToUniversalTime().ToString("yyyyMMddTHHmmssZ")
+  Set-Content -LiteralPath (Join-Path $ReportsDir "k6-$Mode-$stamp.json") -Value $json -Encoding UTF8
+  Write-Host "Measured $Mode run $Iteration/$Repetitions archived." -ForegroundColor Green
 }
 
-Invoke-CheckedCompose -Arguments @("up", "-d", "--build", "sqlserver", "mailpit", "db-init", "api-baseline", "api-secure", "web-baseline", "web-secure")
-
-if (-not $SkipReset) {
-  Write-Host "Đang reset hai database về cùng seed trước thực nghiệm..." -ForegroundColor Yellow
-  Invoke-CheckedCompose -Arguments @("run", "--rm", "db-init", "node", "dist/db/cli.js", "reset")
-}
-
-if ($Suite -in @("all", "security")) {
-  Invoke-CheckedCompose -Arguments @("--profile", "tools", "run", "--rm", "security-tests")
-}
+Invoke-Npm "build"
+Invoke-Compose @("up", "-d", "--build", "api-baseline", "api-secure", "web-baseline", "web-secure")
 if ($Suite -in @("all", "functional")) {
-  Invoke-CheckedCompose -Arguments @("--profile", "tools", "run", "--rm", "functional-tests")
+  Reset-AuditData
+  Invoke-Compose @("up", "-d", "--no-deps", "api-baseline", "api-secure")
+  Wait-Api "baseline"; Wait-Api "secure"
+  Invoke-Npm "test:functional"
+  # Each suite has its own limiter window; retain the actual limits in every suite.
+  Invoke-Compose @("restart", "api-baseline", "api-secure")
+  Wait-Api "baseline"; Wait-Api "secure"
+  Invoke-Npm "test:commerce"
+  Invoke-Compose @("restart", "api-baseline", "api-secure")
+  Wait-Api "baseline"; Wait-Api "secure"
+  Invoke-Npm "test:e2e"
+}
+if ($Suite -in @("all", "security")) {
+  Reset-AuditData
+  Invoke-Compose @("up", "-d", "--no-deps", "api-baseline", "api-secure")
+  Wait-Api "baseline"; Wait-Api "secure"
+  Invoke-Npm "test:security:browser"
+  Invoke-Npm "test:security"
+  & node --env-file=.env scripts/export-security-evidence.mjs
+  if ($LASTEXITCODE -ne 0) { throw "Security event export failed" }
 }
 if ($Suite -in @("all", "performance")) {
-  Invoke-PerformanceRun "baseline"
-  Invoke-PerformanceRun "secure"
+  for ($iteration = 1; $iteration -le $Repetitions; $iteration++) {
+    # Alternate order to reduce systematic warmup/host load bias.
+    $modes = if ($iteration % 2) { @("baseline", "secure") } else { @("secure", "baseline") }
+    foreach ($mode in $modes) { Invoke-PerformanceRun $mode $iteration }
+  }
+  Invoke-Compose @("up", "-d", "--no-deps", "api-baseline", "api-secure")
 }
-
-Write-Host "Báo cáo thật đã được lưu tại $ReportsDir" -ForegroundColor Green
-Write-Host "Mở Admin > Thực nghiệm và chọn Đồng bộ báo cáo." -ForegroundColor Cyan
+Write-Host "Isolated audit experiment reports saved in $ReportsDir" -ForegroundColor Green
+Write-Host "Return to regular databases: docker compose up -d api-baseline api-secure web-baseline web-secure" -ForegroundColor Cyan

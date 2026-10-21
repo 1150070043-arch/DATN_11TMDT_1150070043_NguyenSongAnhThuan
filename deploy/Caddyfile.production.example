@@ -1,0 +1,86 @@
+# ==============================================================================
+# BOOKGUARD PRODUCTION CADDY CONFIGURATION
+# Cấu hình Reverse Proxy & Tự động cấp phát / gia hạn SSL Let's Encrypt cho Production
+# ==============================================================================
+
+{
+  # Email nhận thông báo chứng chỉ Let's Encrypt khi sắp hết hạn
+  email {$ACME_EMAIL:admin@example.com}
+  # Automatic HTTPS also redirects HTTP requests to HTTPS.
+  # The same privacy filter applies to proxy errors as well as access records.
+  log {
+    format filter {
+      wrap json
+      fields {
+        request>uri delete
+        request>headers delete
+        resp_headers delete
+      }
+    }
+  }
+}
+
+{$BOOKGUARD_DOMAIN:localhost} {
+  # 1. Mã hóa nén dữ liệu văn bản
+  encode zstd gzip
+
+  # 2. Các HTTP Security Headers bắt buộc ở Lớp 1 (Transport Layer)
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    -Server
+  }
+
+  # 3. Nhật ký truy cập (Access Log) với xoay vòng file
+  log {
+    output file /var/log/caddy/access.log {
+      roll_size 20mb
+      roll_keep 7
+      roll_keep_for 720h
+    }
+    # Preserve endpoint/status timing without credential queries or headers.
+    format filter {
+      wrap json
+      fields {
+        request>uri delete
+        request>headers delete
+        resp_headers delete
+      }
+    }
+  }
+  log_append <path {http.request.uri.path}
+
+  # 4. Điều hướng API Backend (Express Secure API)
+  handle /api/* {
+    reverse_proxy api-secure:4002 {
+      header_up Host {host}
+      header_up X-Real-IP {remote_host}
+      header_up X-Forwarded-For {remote_host}
+      header_up X-Forwarded-Proto https
+      header_up X-Forwarded-Host {host}
+    }
+  }
+
+  # 5. Điều hướng tệp tải lên (Static Uploads)
+  handle /uploads/* {
+    reverse_proxy api-secure:4002 {
+      header_up Host {host}
+      header_up X-Real-IP {remote_host}
+      header_up X-Forwarded-For {remote_host}
+      header_up X-Forwarded-Proto https
+    }
+  }
+
+  # 6. Điều hướng Frontend (Single Page Application - React Vite Nginx)
+  handle {
+    reverse_proxy web-secure:80 {
+      header_up Host {host}
+      header_up X-Real-IP {remote_host}
+      header_up X-Forwarded-For {remote_host}
+      header_up X-Forwarded-Proto https
+    }
+  }
+}

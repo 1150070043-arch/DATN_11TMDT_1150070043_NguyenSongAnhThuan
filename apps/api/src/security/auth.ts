@@ -4,6 +4,7 @@ import { config } from "../config.js";
 import { getPool, sql } from "../db/pool.js";
 import { HttpError } from "../lib/http.js";
 import { recordSecurityEvent } from "./events.js";
+import { diagnosticErrorCode } from "../lib/diagnostics.js";
 
 const SESSION_COOKIE = config.identity.sessionCookie;
 const REFRESH_COOKIE = config.identity.refreshCookie;
@@ -132,12 +133,15 @@ async function verifySecureToken(token: string): Promise<AuthUser> {
     .input("sessionId", sql.UniqueIdentifier, user.sessionId)
     .query<{
       TokenVersion: number;
+      Email: string;
+      Role: "admin" | "customer";
       IsActive: boolean;
       ExpiresAt: Date | null;
       RevokedAt: Date | null;
     }>(`
-      SELECT u.TokenVersion, u.IsActive, s.ExpiresAt, s.RevokedAt
+      SELECT u.TokenVersion, u.Email, r.Name AS Role, u.IsActive, s.ExpiresAt, s.RevokedAt
       FROM dbo.Users u
+      INNER JOIN dbo.Roles r ON r.Id = u.RoleId
       LEFT JOIN dbo.UserSessions s
         ON s.UserId = u.Id AND s.SessionId = @sessionId
       WHERE u.Id = @id
@@ -161,7 +165,8 @@ async function verifySecureToken(token: string): Promise<AuthUser> {
       WHERE SessionId = @sessionId
         AND LastSeenAt < DATEADD(MINUTE, -5, SYSUTCDATETIME())
     `);
-  return user;
+  // Authorization follows current database state, even before JWT expiry.
+  return { ...user, email: databaseUser.Email, role: databaseUser.Role };
 }
 
 function decodeBaselineToken(token: string): AuthUser {
@@ -186,7 +191,7 @@ export const optionalAuth: RequestHandler = async (req, _res, next) => {
     next();
   } catch (error) {
     await recordSecurityEvent("AUTH_TOKEN_REJECTED", req, {
-      message: error instanceof Error ? error.message : "unknown"
+      code: diagnosticErrorCode(error)
     });
     next();
   }

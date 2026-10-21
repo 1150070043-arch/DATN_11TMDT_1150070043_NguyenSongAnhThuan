@@ -3,7 +3,16 @@ node_modules
 **/dist
 .git
 .env
+.env.production
+.env.production.*
+.env.*.local
+backups
+reports/operations
+reports/ci
+reports/ui-layout
 uploads
 reports/generated/*
 reports/playwright
 *.log
+UI/temp-check
+UI/light-mode-check

@@ -1,4 +1,5 @@
 import path from "node:path";
+import { isIP } from "node:net";
 import { z } from "zod";
 import { environmentIdentity } from "./security/environment.js";
 
@@ -14,6 +15,8 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).optional(),
   SQLSERVER_HOST: z.string().default("localhost"),
   SQLSERVER_PORT: z.coerce.number().int().positive().default(1433),
+  SQLSERVER_ENCRYPT: boolFromEnv,
+  SQLSERVER_TRUST_CERTIFICATE: boolFromEnv,
   DB_NAME: z.string().optional(),
   DB_USER: z.string().optional(),
   DB_PASSWORD: z.string().optional(),
@@ -46,12 +49,34 @@ const envSchema = z.object({
   EMAIL_VERIFICATION_TTL_HOURS: z.coerce.number().int().min(1).max(168).default(24),
   ACCESS_TOKEN_TTL_MINUTES: z.coerce.number().int().min(5).max(60).default(15),
   SESSION_TTL_DAYS: z.coerce.number().int().min(1).max(30).default(7),
+  AUTH_CLEANUP_ENABLED: boolFromEnv,
+  AUTH_CLEANUP_INTERVAL_MINUTES: z.coerce.number().int().min(1).max(1440).default(60),
+  AUTH_CLEANUP_RETENTION_DAYS: z.coerce.number().int().min(1).max(365).default(7),
+  AUTH_CLEANUP_BATCH_SIZE: z.coerce.number().int().min(1).max(1000).default(500),
+  AUTH_CLEANUP_MAX_BATCHES: z.coerce.number().int().min(1).max(50).default(10),
+  STOCK_HOLD_ENABLED: boolFromEnv,
+  STOCK_HOLD_MINUTES: z.coerce.number().int().min(15).max(1440).default(30),
+  STOCK_HOLD_GRACE_MINUTES: z.coerce.number().int().min(1).max(60).default(5),
+  STOCK_HOLD_INTERVAL_SECONDS: z.coerce.number().int().min(10).max(3600).default(60),
+  STOCK_HOLD_BATCH_SIZE: z.coerce.number().int().min(1).max(100).default(25),
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(3).default(0),
   COOKIE_SECURE: boolFromEnv,
   ALLOW_INSECURE_LAB: boolFromEnv,
-  VNPAY_TMN_CODE: z.string().default("2QXUI4J4"),
-  VNPAY_HASH_SECRET: z.string().default("RAHQxnhjxUk1ambjhWrhAAMPfNxVuErw"),
-  VNPAY_URL: z.string().default("https://sandbox.vnpayment.vn/paymentv2/vpcpay.html")
+  VNPAY_TMN_CODE: z.string().default(""),
+  VNPAY_HASH_SECRET: z.string().default(""),
+  VNPAY_RETURN_URL: z.string().url().optional(),
+  VNPAY_URL: z.string().default("https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"),
+  VNPAY_QUERY_ENABLED: boolFromEnv,
+  VNPAY_QUERY_URL: z.string().url().default("https://sandbox.vnpayment.vn/merchant_webapi/api/transaction"),
+  VNPAY_QUERY_TIMEOUT_MS: z.coerce.number().int().min(1000).max(15000).default(8000),
+  VNPAY_QUERY_IP_ADDRESS: z.preprocess(value => value === "" ? undefined : value, z.string().refine(value => isIP(value) !== 0, "VNPay query IP must be an IPv4 or IPv6 address.").optional()),
+  ALERT_WEBHOOK_URL: z.preprocess(value => typeof value === "string" && value.trim() === "" ? undefined : value, z.string().url().optional()),
+  ALERT_TELEGRAM_BOT_TOKEN: z.string().optional(),
+  ALERT_TELEGRAM_CHAT_ID: z.string().optional(),
+  ALERT_THROTTLE_SECONDS: z.coerce.number().int().min(10).max(3600).default(300),
+  ALERT_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(3).default(2),
+  ALERT_RETRY_DELAY_MS: z.coerce.number().int().min(0).max(5000).default(250),
+  ALERT_TIMEOUT_MS: z.coerce.number().int().min(100).max(15000).default(8000)
 });
 
 const parsed = envSchema.parse(process.env);
@@ -83,6 +108,20 @@ const webOrigin =
   (isSecure ? parsed.SECURE_WEB_ORIGIN : parsed.BASELINE_WEB_ORIGIN) ??
   (isSecure ? "http://localhost:5174" : "http://localhost:5173");
 const smtpSecure = parsed.SMTP_SECURE ?? false;
+if (Boolean(parsed.ALERT_TELEGRAM_BOT_TOKEN) !== Boolean(parsed.ALERT_TELEGRAM_CHAT_ID)) {
+  throw new Error("ALERT_TELEGRAM_BOT_TOKEN and ALERT_TELEGRAM_CHAT_ID must be configured together.");
+}
+const queryEndpoint = new URL(parsed.VNPAY_QUERY_URL);
+if (queryEndpoint.username || queryEndpoint.password || queryEndpoint.search || queryEndpoint.hash ||
+    (queryEndpoint.protocol !== "https:" && !(parsed.NODE_ENV === "test" && queryEndpoint.protocol === "http:" && ["localhost", "127.0.0.1"].includes(queryEndpoint.hostname)))) {
+  throw new Error("VNPay query endpoint must use HTTPS; loopback HTTP is allowed only in tests.");
+}
+const localSqlServer = ["localhost", "127.0.0.1", "sqlserver"].includes(parsed.SQLSERVER_HOST.toLowerCase());
+const sqlEncrypt = parsed.SQLSERVER_ENCRYPT ?? true;
+const sqlTrustCertificate = parsed.SQLSERVER_TRUST_CERTIFICATE ?? localSqlServer;
+if (isSecure && parsed.NODE_ENV === "production" && (!sqlEncrypt || (!localSqlServer && sqlTrustCertificate))) {
+  throw new Error("Secure production requires encrypted SQL and certificate verification for remote SQL servers.");
+}
 
 if (databaseName.toLowerCase() === otherDatabase.toLowerCase() ||
     databaseUser.toLowerCase() === otherDatabaseUser.toLowerCase()) {
@@ -159,7 +198,9 @@ export const config = {
     port: parsed.SQLSERVER_PORT,
     database: databaseName,
     user: databaseUser,
-    password: databasePassword
+    password: databasePassword,
+    encrypt: sqlEncrypt,
+    trustServerCertificate: sqlTrustCertificate
   },
   jwtSecret,
   csrfSecret: parsed.CSRF_SECRET,
@@ -180,13 +221,41 @@ export const config = {
   emailVerificationTtlHours: parsed.EMAIL_VERIFICATION_TTL_HOURS,
   accessTokenTtlMinutes: parsed.ACCESS_TOKEN_TTL_MINUTES,
   sessionTtlDays: parsed.SESSION_TTL_DAYS,
+  authCleanup: {
+    enabled: parsed.AUTH_CLEANUP_ENABLED ?? true,
+    intervalMinutes: parsed.AUTH_CLEANUP_INTERVAL_MINUTES,
+    retentionDays: parsed.AUTH_CLEANUP_RETENTION_DAYS,
+    batchSize: parsed.AUTH_CLEANUP_BATCH_SIZE,
+    maxBatches: parsed.AUTH_CLEANUP_MAX_BATCHES
+  },
   trustProxyHops: parsed.TRUST_PROXY_HOPS,
+  stockHold: {
+    enabled: parsed.STOCK_HOLD_ENABLED ?? true,
+    minutes: parsed.STOCK_HOLD_MINUTES,
+    graceMinutes: parsed.STOCK_HOLD_GRACE_MINUTES,
+    intervalSeconds: parsed.STOCK_HOLD_INTERVAL_SECONDS,
+    batchSize: parsed.STOCK_HOLD_BATCH_SIZE
+  },
   cookieSecure:
     parsed.COOKIE_SECURE ?? (parsed.NODE_ENV === "production" && webOrigin.startsWith("https://")),
   vnpay: {
     tmnCode: parsed.VNPAY_TMN_CODE,
     hashSecret: parsed.VNPAY_HASH_SECRET,
-    url: parsed.VNPAY_URL
+    returnUrl: parsed.VNPAY_RETURN_URL,
+    url: parsed.VNPAY_URL,
+    queryEnabled: parsed.VNPAY_QUERY_ENABLED ?? false,
+    queryUrl: parsed.VNPAY_QUERY_URL,
+    queryTimeoutMs: parsed.VNPAY_QUERY_TIMEOUT_MS,
+    queryIpAddress: parsed.VNPAY_QUERY_IP_ADDRESS
+  },
+  alerting: {
+    webhookUrl: parsed.ALERT_WEBHOOK_URL,
+    telegramBotToken: parsed.ALERT_TELEGRAM_BOT_TOKEN,
+    telegramChatId: parsed.ALERT_TELEGRAM_CHAT_ID,
+    throttleSeconds: parsed.ALERT_THROTTLE_SECONDS,
+    maxAttempts: parsed.ALERT_MAX_ATTEMPTS,
+    retryDelayMs: parsed.ALERT_RETRY_DELAY_MS,
+    timeoutMs: parsed.ALERT_TIMEOUT_MS
   }
 } as const;
 

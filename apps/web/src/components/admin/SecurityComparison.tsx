@@ -267,7 +267,7 @@ export function SecurityComparison({ report }: { report: SecurityReport }) {
             <div className="text-[11px] text-slate-400 font-medium">Tỷ lệ phòng thủ</div>
             <div className="text-lg font-bold font-mono text-emerald-400">{completion}% <span className="text-xs font-normal text-slate-500">({report.summary.passed}/{report.summary.total})</span></div>
           </div>
-          <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">ĐẠT CHUẨN</span>
+          <span className={`text-[11px] font-mono font-semibold px-2 py-0.5 rounded border ${completion === 100 ? 'text-emerald-400 border-emerald-500/25' : 'text-rose-300 border-rose-500/25'}`}>{completion === 100 ? 'Đạt bộ kiểm thử' : 'CHƯA ĐẠT'}</span>
         </div>
 
         <div className="admin-card-hover bg-slate-900/60 border border-slate-800/80 rounded-lg px-3.5 py-2.5 flex items-center justify-between">
@@ -275,7 +275,7 @@ export function SecurityComparison({ report }: { report: SecurityReport }) {
             <div className="text-[11px] text-slate-400 font-medium">Bản gốc Baseline</div>
             <div className="text-lg font-bold font-mono text-rose-400">{report.summary.baselineVulnerable} <span className="text-xs font-normal text-slate-500">lỗ hổng</span></div>
           </div>
-          <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/25">100% LỖI</span>
+          <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/25">{report.summary.baselineVulnerable}/{report.summary.total} BỊ KHAI THÁC</span>
         </div>
 
         <div className="admin-card-hover bg-slate-900/60 border border-slate-800/80 rounded-lg px-3.5 py-2.5 flex items-center justify-between">
@@ -283,15 +283,15 @@ export function SecurityComparison({ report }: { report: SecurityReport }) {
             <div className="text-[11px] text-slate-400 font-medium">Bản bảo mật Secure</div>
             <div className="text-lg font-bold font-mono text-emerald-400">{report.summary.secureProtected} <span className="text-xs font-normal text-slate-500">bảo vệ</span></div>
           </div>
-          <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">AN TOÀN</span>
+          <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700">CHẶN {report.summary.secureProtected}/{report.summary.total}</span>
         </div>
 
         <div className="admin-card-hover bg-slate-900/60 border border-slate-800/80 rounded-lg px-3.5 py-2.5 flex items-center justify-between">
           <div>
-            <div className="text-[11px] text-slate-400 font-medium">Độ trễ trung bình</div>
+            <div className="text-[11px] text-slate-400 font-medium">Thời gian kịch bản TB</div>
             <div className="text-lg font-bold font-mono text-slate-100">{secureAverage ?? "—"} <span className="text-xs font-normal text-slate-500">ms</span></div>
           </div>
-          <span className="text-xs font-mono text-amber-400 font-medium">+{Math.max(0, (secureAverage ?? 0) - (baselineAverage ?? 0))}ms</span>
+          <span className="text-xs font-mono text-amber-400 font-medium">{secureAverage == null || baselineAverage == null ? 'Chưa đủ dữ liệu' : `${secureAverage >= baselineAverage ? '+' : ''}${Math.round((secureAverage - baselineAverage) * 100) / 100} ms`}</span>
         </div>
       </div>
 

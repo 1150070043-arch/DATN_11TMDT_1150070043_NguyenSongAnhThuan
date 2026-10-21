@@ -1,5 +1,15 @@
 # API chính
 
+## Liên hệ nhà sách
+
+`POST /api/contact` nhận `{ name, email, topic, message }`, với `topic` là
+`books`, `orders`, `account` hoặc `feedback`. Không cần đăng nhập; Secure vẫn
+yêu cầu CSRF token và kiểm tra origin; `GET /api/contact/csrf` cấp token cho
+khách chưa đăng nhập, không cấp phiên xác thực. Giới hạn 3 yêu cầu mỗi 15 phút/IP.
+Lời nhắn gửi qua SMTP tới quản trị viên đang hoạt động đầu tiên, dùng email
+khách làm Reply-To. Chỉ trả `201` cùng `data.reference` sau khi SMTP xác nhận;
+thiếu người nhận hoặc gửi lỗi trả `503`. Nội dung HTML được escape.
+
 Mọi response thành công có dạng `{ "data": ... }`. Response lỗi có `error.code`, `error.message` và `error.requestId`.
 
 ## Công khai

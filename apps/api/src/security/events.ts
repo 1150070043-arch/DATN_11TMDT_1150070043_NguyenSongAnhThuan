@@ -2,6 +2,8 @@ import type { Request } from "express";
 import { config } from "../config.js";
 import { getPool, sql } from "../db/pool.js";
 import { logger } from "../lib/logger.js";
+import { sendAlertNonBlocking } from "../lib/alerting.js";
+import { diagnosticPath, diagnosticErrorCode } from "../lib/diagnostics.js";
 
 export type SecurityEventType =
   | "LOGIN_FAILED"
@@ -54,7 +56,7 @@ export async function recordSecurityEvent(
       .input("severity", sql.NVarChar(20), severity)
       .input("ip", sql.NVarChar(80), req.ip ?? null)
       .input("method", sql.NVarChar(12), req.method)
-      .input("path", sql.NVarChar(500), req.originalUrl.slice(0, 500))
+      .input("path", sql.NVarChar(500), diagnosticPath(req.originalUrl))
       .input("details", sql.NVarChar(2000), JSON.stringify(details).slice(0, 2000))
       .query(`
         INSERT INTO dbo.SecurityEvents
@@ -62,10 +64,26 @@ export async function recordSecurityEvent(
         VALUES
           (@requestId, @userId, @type, @severity, @ip, @method, @path, @details)
       `);
+
+    if (severity === "critical") {
+      sendAlertNonBlocking({
+        level: "critical",
+        type: `SECURITY_${type}`,
+        message: `Phát hiện sự kiện an ninh mức CRITICAL [${type}] từ IP ${req.ip ?? "unknown"} trên đường dẫn ${req.method} ${diagnosticPath(req.originalUrl)}`,
+        details: {
+          requestId: req.requestId,
+          userId: req.authUser?.id,
+          ip: req.ip,
+          method: req.method,
+          path: diagnosticPath(req.originalUrl),
+          ...details
+        }
+      });
+    }
   } catch (error) {
     logger.error("security_event_write_failed", {
       type,
-      message: error instanceof Error ? error.message : String(error)
+      code: diagnosticErrorCode(error)
     });
   }
 }

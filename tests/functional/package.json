@@ -5,7 +5,12 @@
   "type": "module",
   "scripts": {
     "test": "tsx src/run.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "test:commerce": "node --env-file=../../.env --import tsx src/commerce-regressions.ts",
+    "test:auth-maintenance": "node --env-file=../../.env --import tsx src/auth-maintenance-regressions.ts",
+    "test:security-hardening": "node --env-file=../../.env --import tsx src/security-hardening-regressions.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:payments": "node --env-file=../../.env --import tsx src/payment-regressions.ts",
+    "test:stock-holds": "node --env-file=../../.env --import tsx src/stock-hold-regressions.ts"
   },
   "devDependencies": {
     "@types/node": "^24.3.0",

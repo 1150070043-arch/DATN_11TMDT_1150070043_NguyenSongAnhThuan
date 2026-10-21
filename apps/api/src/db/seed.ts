@@ -418,6 +418,10 @@ export async function seedDatabase(pool: sql.ConnectionPool, secure: boolean): P
 
   try {
     await new sql.Request(transaction).batch(`
+      DELETE FROM dbo.PaymentAttempts;
+      DELETE FROM dbo.CouponRedemptions;
+      DELETE FROM dbo.Coupons;
+      DELETE FROM dbo.AdminAuditEvents;
       DELETE FROM dbo.SecurityEvents;
       DELETE FROM dbo.ExperimentRuns;
       DELETE FROM dbo.OrderNotifications;

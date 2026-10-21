@@ -54,7 +54,7 @@ const securityReportSchema = z.object({
 
 const coverUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { files: 1, fileSize: 3 * 1024 * 1024 }
+  limits: { files: 1, fileSize: 3 * 1024 * 1024, fields: 0, parts: 2, headerPairs: 100 }
 });
 
 export const adminOperationsRouter = Router();
@@ -330,6 +330,8 @@ adminOperationsRouter.get(
           o.Status AS status, o.SubtotalAmount AS subtotalAmount,
           o.DiscountAmount AS discountAmount, o.CouponCode AS couponCode,
           o.TotalAmount AS totalAmount,
+          o.PaymentMethod AS paymentMethod,o.PaymentStatus AS paymentStatus,
+          o.StockHoldUntil AS stockHoldUntil,o.StockReleaseAfter AS stockReleaseAfter,o.StockExpiredAt AS stockExpiredAt,
           o.CreatedAt AS createdAt, o.UpdatedAt AS updatedAt
         FROM dbo.Orders o
         INNER JOIN dbo.Users u ON u.Id = o.UserId

@@ -72,7 +72,9 @@ test("twin-isolation: comparison screen displays failures instead of hardcoded P
   await page.locator("aside").getByRole("button", { name: /Đối chiếu an ninh/ }).click();
   await expect(page.getByText("CHẶN 0/1", { exact: true })).toBeVisible();
   await expect(page.getByText("CHƯA ĐẠT", { exact: true })).toBeVisible();
-  await expect(page.getByText("Chưa phòng thủ", { exact: true })).toBeVisible();
+  await expect(page.getByText("Chưa ngăn chặn", { exact: true })).toBeVisible();
   await expect(page.getByText("Chưa đủ dữ liệu", { exact: true })).toBeVisible();
   await expect(page.getByText("10/10 PASS", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("AN TOÀN", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("ĐẠT CHUẨN", { exact: true })).toHaveCount(0);
 });

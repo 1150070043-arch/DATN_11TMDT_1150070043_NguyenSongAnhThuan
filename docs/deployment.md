@@ -1,5 +1,7 @@
 # Triển khai
 
+Hướng dẫn production và kiểm chứng vận hành mới nhất: [Cẩm nang vận hành](operations-production-guide.md). Dùng Compose riêng cho production, không dùng seed/reset của lab. Các mục v1.4/v1.5 bên dưới mô tả nâng cấp lịch sử; schema hiện tại là v8, quyền Secure theo từng bảng và outbox retry tối đa 10 lần.
+
 ## Secure
 
 Bản Secure có thể đặt sau Nginx, Caddy hoặc load balancer hỗ trợ TLS. Khi triển khai:

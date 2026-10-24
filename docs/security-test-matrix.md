@@ -8,7 +8,7 @@
 | TC04 | Authentication Failure | OWASP WSTG-SESS-10 | JWT bị sửa payload/chữ ký | Token bị decode và chấp nhận | Token bị verify và từ chối |
 | TC05 | Brute Force | OWASP WSTG-ATHN-03 | 7 lần đăng nhập sai | Không giới hạn | HTTP 429 và security log |
 | TC06 | Broken Access Control | OWASP WSTG-ATHZ-02 | Customer gọi `/api/admin/users` | Truy cập được | HTTP 403 |
-| TC07 | IDOR | OWASP WSTG-ATHZ-04 | Customer A đọc order 101 của B | Đọc được | HTTP 403 |
+| TC07 | IDOR | OWASP WSTG-ATHZ-04 | Khách đọc một đơn hàng thuộc người khác | Đọc được | HTTP 403 |
 | TC08 | Misconfiguration | OWASP Top 10 A05:2021 | CORS + header | Origin lạ được phản chiếu, lộ framework | Origin lạ không được chấp nhận, ẩn framework |
 | TC09 | Data Exposure | OWASP Top 10 A02:2021 | `GET /api/auth/me` | Trả cả trường credential | Chỉ trả DTO an toàn |
 | TC10 | Unsafe File Upload | OWASP WSTG-BUSL-08 | Upload `.exe` giả | File được nhận | HTTP 422 và security log |

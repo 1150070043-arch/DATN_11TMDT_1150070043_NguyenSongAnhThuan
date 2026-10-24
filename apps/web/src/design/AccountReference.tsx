@@ -4,6 +4,7 @@ import { api, assetUrl, setCsrfToken } from '../lib/api';
 import { useAuth as useSession } from '../context/AuthContext';
 import type { UserSession, User, Order } from '../types';
 import { useToast, useTheme, SectionLabel, statusColor, fmt } from './Reference';
+import { BrandMark } from '../components/BrandMark';
 export function SettingsPage({ onBack }: { onBack: () => void }) {
   const { user, refreshUser, logout } = useSession()
   const toast = useToast()
@@ -274,11 +275,9 @@ export function LoginPage({ onLogin, onRegister, onForgot }: { onLogin: (user?: 
     <div className="min-h-screen flex items-center justify-center px-4 pt-16">
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
-          <div className="w-12 h-12 rounded-sm bg-[#c8a94d] flex items-center justify-center mx-auto mb-5">
-            <span className="font-display font-bold text-[#0b0907] text-2xl">T</span>
-          </div>
+          <BrandMark className="auth-page-brand" />
           <h1 className={`font-display text-3xl font-medium mb-2 ${light ? 'text-[#1a1410]' : 'text-[#ede7dc]'}`}>Đăng nhập</h1>
-          <p className="text-sm text-[#7a6f64]">Chào mừng trở lại với Thư An</p>
+          <p className="text-sm text-[#7a6f64]">Chào mừng trở lại với Thất Tịnh</p>
         </div>
 
         <div className={`rounded-sm border p-8 ${light ? 'bg-white border-[#d5cfc4]' : 'bg-[#131110] border-[#22201d]'}`}>
@@ -375,11 +374,9 @@ export function RegisterPage({ onLogin, onBack }: { onLogin: () => void; onBack:
     <div className="min-h-screen flex items-center justify-center px-4 pt-16 pb-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
-          <div className="w-12 h-12 rounded-sm bg-[#c8a94d] flex items-center justify-center mx-auto mb-5">
-            <span className="font-display font-bold text-[#0b0907] text-2xl">T</span>
-          </div>
+          <BrandMark className="auth-page-brand" />
           <h1 className={`font-display text-3xl font-medium mb-2 ${light ? 'text-[#1a1410]' : 'text-[#ede7dc]'}`}>Tạo tài khoản</h1>
-          <p className="text-sm text-[#7a6f64]">Tham gia cộng đồng độc giả Thư An</p>
+          <p className="text-sm text-[#7a6f64]">Tham gia cộng đồng độc giả Thất Tịnh</p>
         </div>
 
         <div className={`rounded-sm border p-8 ${light ? 'bg-white border-[#d5cfc4]' : 'bg-[#131110] border-[#22201d]'}`}>

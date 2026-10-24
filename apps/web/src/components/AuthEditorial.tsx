@@ -1,8 +1,10 @@
+import { BrandMark } from './BrandMark';
+
 export function AuthEditorial() {
   return (
     <aside className="auth-editorial">
-      <div className="auth-monogram" aria-hidden="true">TA</div>
-      <div className="eyebrow">Thành viên Thư An</div>
+      <BrandMark className="auth-brand-mark" />
+      <div className="eyebrow">Thành viên Thất Tịnh</div>
       <h2>Một góc riêng cho hành trình đọc của bạn.</h2>
       <p>Lưu thông tin nhận sách, quản lý giỏ hàng và theo dõi từng đơn hàng trong một nơi.</p>
       <div className="auth-benefits">

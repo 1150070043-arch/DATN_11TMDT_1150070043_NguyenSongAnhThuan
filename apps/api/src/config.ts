@@ -44,7 +44,7 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional().default(""),
   SMTP_PASSWORD: z.string().optional().default(""),
   MAIL_FROM_ADDRESS: z.string().email().default("no-reply@bookguard.local"),
-  MAIL_FROM_NAME: z.string().trim().min(1).max(120).default("Thư An Bookstore"),
+  MAIL_FROM_NAME: z.string().trim().min(1).max(120).default("Thất Tịnh Bookstore"),
   PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().min(5).max(120).default(30),
   EMAIL_VERIFICATION_TTL_HOURS: z.coerce.number().int().min(1).max(168).default(24),
   ACCESS_TOKEN_TTL_MINUTES: z.coerce.number().int().min(5).max(60).default(15),

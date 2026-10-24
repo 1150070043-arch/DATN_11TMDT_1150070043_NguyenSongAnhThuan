@@ -173,7 +173,7 @@ const orderStatusContent = {
   pending: {
     label: "Đã tiếp nhận",
     heading: "Đơn hàng đã được tiếp nhận",
-    message: "Thư An đã nhận đơn và đang kiểm tra thông tin trước khi xác nhận."
+    message: "Thất Tịnh đã nhận đơn và đang kiểm tra thông tin trước khi xác nhận."
   },
   confirmed: {
     label: "Đã xác nhận",
@@ -188,7 +188,7 @@ const orderStatusContent = {
   completed: {
     label: "Hoàn tất",
     heading: "Đơn hàng đã hoàn tất",
-    message: "Cảm ơn bạn đã chọn sách tại Thư An. Chúc bạn có một trải nghiệm đọc thật vui."
+    message: "Cảm ơn bạn đã chọn sách tại Thất Tịnh. Chúc bạn có một trải nghiệm đọc thật vui."
   },
   cancelled: {
     label: "Đã hủy",
@@ -215,7 +215,7 @@ export function orderStatusMailContent(input: {
   }).format(input.totalAmount);
   return {
     to: input.to,
-    subject: `${copy.label} · Đơn hàng #${input.orderId} · Thư An`,
+    subject: `${copy.label} · Đơn hàng #${input.orderId} · Thất Tịnh`,
     text: [
       `Xin chào ${input.customerName},`,
       "",
@@ -227,7 +227,7 @@ export function orderStatusMailContent(input: {
     ].join("\n"),
     html: `
       <div style="font-family:Arial,sans-serif;max-width:580px;margin:auto;padding:32px;color:#10251f">
-        <div style="font-size:12px;letter-spacing:2px;color:#c45118;font-weight:700">THƯ AN BOOKSTORE</div>
+        <div style="font-size:12px;letter-spacing:2px;color:#c45118;font-weight:700">THẤT TỊNH BOOKSTORE</div>
         <p style="margin:24px 0 8px;color:#68766f">Xin chào ${safeName},</p>
         <h1 style="font-family:Georgia,serif;font-size:32px;line-height:1.1;margin:0 0 16px">${copy.heading}</h1>
         <p>${copy.message}</p>
@@ -251,9 +251,9 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string, ttlMi
   const safeUrl = escapeHtml(resetUrl);
   await sendMail({
     to,
-    subject: "Đặt lại mật khẩu Thư An",
+    subject: "Đặt lại mật khẩu Thất Tịnh",
     text: [
-      "Bạn vừa yêu cầu đặt lại mật khẩu tài khoản Thư An.",
+      "Bạn vừa yêu cầu đặt lại mật khẩu tài khoản Thất Tịnh.",
       "",
       `Mở liên kết này trong ${ttlMinutes} phút:`,
       resetUrl,
@@ -262,9 +262,9 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string, ttlMi
     ].join("\n"),
     html: `
       <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:32px;color:#10251f">
-        <div style="font-size:12px;letter-spacing:2px;color:#c45118;font-weight:700">THƯ AN BOOKSTORE</div>
+        <div style="font-size:12px;letter-spacing:2px;color:#c45118;font-weight:700">THẤT TỊNH BOOKSTORE</div>
         <h1 style="font-family:Georgia,serif;font-size:32px;line-height:1.1">Đặt lại mật khẩu</h1>
-        <p>Bạn vừa yêu cầu đặt lại mật khẩu tài khoản Thư An.</p>
+        <p>Bạn vừa yêu cầu đặt lại mật khẩu tài khoản Thất Tịnh.</p>
         <p style="margin:28px 0"><a href="${safeUrl}" style="display:inline-block;padding:14px 20px;background:#10251f;color:white;text-decoration:none;border-radius:4px">Tạo mật khẩu mới</a></p>
         <p style="font-size:13px;color:#68766f">Liên kết có hiệu lực trong ${ttlMinutes} phút và chỉ dùng được một lần.</p>
         <p style="font-size:13px;color:#68766f">Nếu bạn không thực hiện yêu cầu này, hãy bỏ qua email.</p>
@@ -281,9 +281,9 @@ export async function sendEmailVerificationEmail(
   const safeUrl = escapeHtml(verificationUrl);
   await sendMail({
     to,
-    subject: "Xác minh email Thư An",
+    subject: "Xác minh email Thất Tịnh",
     text: [
-      "Chào mừng bạn đến với Thư An.",
+      "Chào mừng bạn đến với Thất Tịnh.",
       "",
       `Mở liên kết này trong ${ttlHours} giờ để xác minh email:`,
       verificationUrl,
@@ -292,9 +292,9 @@ export async function sendEmailVerificationEmail(
     ].join("\n"),
     html: `
       <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:32px;color:#10251f">
-        <div style="font-size:12px;letter-spacing:2px;color:#c45118;font-weight:700">THƯ AN BOOKSTORE</div>
+        <div style="font-size:12px;letter-spacing:2px;color:#c45118;font-weight:700">THẤT TỊNH BOOKSTORE</div>
         <h1 style="font-family:Georgia,serif;font-size:32px;line-height:1.1">Xác minh email</h1>
-        <p>Chào mừng bạn đến với Thư An. Xác minh email để bảo vệ tài khoản và bắt đầu mua sách.</p>
+        <p>Chào mừng bạn đến với Thất Tịnh. Xác minh email để bảo vệ tài khoản và bắt đầu mua sách.</p>
         <p style="margin:28px 0"><a href="${safeUrl}" style="display:inline-block;padding:14px 20px;background:#10251f;color:white;text-decoration:none;border-radius:4px">Xác minh email</a></p>
         <p style="font-size:13px;color:#68766f">Liên kết có hiệu lực trong ${ttlHours} giờ và chỉ dùng được một lần.</p>
         <p style="font-size:13px;color:#68766f">Nếu bạn không tạo tài khoản này, hãy bỏ qua email.</p>

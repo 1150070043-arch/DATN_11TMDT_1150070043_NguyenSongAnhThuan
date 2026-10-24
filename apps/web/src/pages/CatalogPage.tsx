@@ -108,7 +108,7 @@ export function CatalogPage() {
                 {total > 0 ? `${total} tác phẩm được tuyển chọn dành cho bạn` : "Khám phá những tác phẩm đáng đọc"}
               </p>
             </div>
-            <span className="font-mono text-[10px] tracking-[.24em] uppercase text-[#666057]">Thư An · Collection 2026</span>
+            <span className="font-mono text-[10px] tracking-[.24em] uppercase text-[#666057]">Thất Tịnh · Collection 2026</span>
           </div>
         </div>
       </section>

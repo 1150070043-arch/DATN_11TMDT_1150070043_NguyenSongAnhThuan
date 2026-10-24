@@ -48,7 +48,7 @@ const journey = [
   { title: 'Tìm một cuốn sách', tag: 'Khám phá', description: 'Dạo qua các thể loại, tìm theo tên sách hoặc tác giả. Một chủ đề quen, hay một điều bạn chưa từng nghĩ tới?', action: 'Khám phá danh mục', route: '/catalog', symbol: '01' },
   { title: 'Hiểu trước khi chọn', tag: 'Tìm hiểu', description: 'Đọc giới thiệu, xem thông tin sách và những nhận xét của độc giả. Chọn điều phù hợp với sự tò mò của bạn.', action: 'Tìm cuốn sách của bạn', route: '/catalog', symbol: '02' },
   { title: 'Đặt sách theo cách bạn muốn', tag: 'Đặt sách', description: 'Lưu vào giỏ để chọn thêm, hoặc bấm Mua ngay để tới thanh toán. Kiểm tra thông tin nhận hàng trước khi xác nhận.', action: 'Mở giỏ sách', route: '/cart', symbol: '03' },
-  { title: 'Chờ một hành trình mới', tag: 'Theo dõi', description: 'Theo dõi trạng thái trong mục Đơn hàng. Khi cần hỏi thêm về sách hoặc đơn đã đặt, Thư An có một nơi để bạn gửi lời nhắn.', action: 'Theo dõi đơn hàng', route: '/orders', symbol: '04' },
+  { title: 'Chờ một hành trình mới', tag: 'Theo dõi', description: 'Theo dõi trạng thái trong mục Đơn hàng. Khi cần hỏi thêm về sách hoặc đơn đã đặt, Thất Tịnh có một nơi để bạn gửi lời nhắn.', action: 'Theo dõi đơn hàng', route: '/orders', symbol: '04' },
 ];
 
 export function ReadingJourney() {

@@ -126,7 +126,7 @@ export function BookDetailPage() {
       <div className="row g-5">
         <div className="col-md-5 col-lg-4">
           <div className="detail-cover">
-            <span className="detail-edition">Thư An select</span>
+            <span className="detail-edition">Thất Tịnh select</span>
             <div className="book-cover-fallback">{book.title.slice(0, 1)}</div>
             {book.coverUrl && (
               <img

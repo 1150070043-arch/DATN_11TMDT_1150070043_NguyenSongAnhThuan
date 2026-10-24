@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext, useMemo, type ReactNode } from 'react'
 import { useAuth as useSession } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
+import { BrandMark } from '../components/BrandMark'
 
 import { DataCtx, fmt, statusColor, levelColor, type AdminTab } from './Reference'
 export { DataCtx, type AdminTab } from './Reference'
@@ -50,12 +51,10 @@ export function AdminPanel({ activeTab, onTabChange, children, syncLabel = 'Dữ
       {/* Top Dedicated Admin Header: 64px, modern sleek obsidian/light bar */}
       <header className="h-16 shrink-0 border-b border-slate-800/80 bg-[#0b101c] px-6 flex items-center justify-between z-30 shadow-md relative">
         <div className="flex items-center gap-4">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center font-extrabold text-slate-950 text-lg shadow-md">
-            T
-          </div>
+          <BrandMark />
           <div>
             <div className="font-bold text-base text-white leading-tight flex items-center gap-2">
-              <span>BookGuard</span>
+              <span>Thất Tịnh</span>
               <span className="text-slate-600 font-normal">/</span>
               <span className="text-slate-400 font-medium text-xs">Admin Portal</span>
             </div>
@@ -1573,7 +1572,7 @@ export function AdminCategories({ onCreate, onEdit, onRemove }: { onCreate?: () 
           <div className="bg-[#0f172a] border border-slate-800 rounded-2xl p-6 sm:p-8 w-full max-w-lg shadow-2xl text-slate-100 my-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-start justify-between pb-4 mb-6 border-b border-slate-800">
               <div>
-                <div className="text-xs tracking-wider text-amber-400 uppercase font-mono font-bold mb-1">Kho sách Thư An</div>
+                <div className="text-xs tracking-wider text-amber-400 uppercase font-mono font-bold mb-1">Kho sách Thất Tịnh</div>
                 <h3 className="text-2xl font-bold text-white">Thêm thể loại mới</h3>
               </div>
               <button onClick={() => setShowModal(false)} className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-amber-400 flex items-center justify-center transition-colors cursor-pointer text-sm">

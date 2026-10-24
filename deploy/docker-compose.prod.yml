@@ -77,7 +77,7 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       MAIL_FROM_ADDRESS: "${MAIL_FROM_ADDRESS:?Set MAIL_FROM_ADDRESS}"
-      MAIL_FROM_NAME: "${MAIL_FROM_NAME:-Thư An Bookstore}"
+      MAIL_FROM_NAME: "${MAIL_FROM_NAME:-Thất Tịnh Bookstore}"
       # Cấu hình Cảnh báo lỗi tức thời
       ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
       ALERT_TELEGRAM_BOT_TOKEN: ${ALERT_TELEGRAM_BOT_TOKEN:-}

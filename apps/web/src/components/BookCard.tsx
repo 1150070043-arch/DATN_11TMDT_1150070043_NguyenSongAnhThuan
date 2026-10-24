@@ -115,7 +115,7 @@ export function BookCard({
         )}
       </Link>
       <div className="book-card-body">
-        <div className="book-category">Thư An tuyển chọn</div>
+        <div className="book-category">Thất Tịnh tuyển chọn</div>
         <h2 className="book-title">
           <Link to={`/books/${book.slug}`}>{book.title}</Link>
         </h2>

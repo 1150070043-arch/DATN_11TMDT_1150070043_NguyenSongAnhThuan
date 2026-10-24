@@ -5,6 +5,7 @@ import { useCart } from "../context/CartContext";
 import { useToast } from "../context/ToastContext";
 import { ApiError, assetUrl } from "../lib/api";
 import { ModeStrip } from "./ModeStrip";
+import { BrandMark } from "./BrandMark";
 
 function NavIcon({ name }: { name: "home" | "heart" | "bag" | "order" }) {
   const paths = {
@@ -76,11 +77,9 @@ export function AppLayout() {
       <header className={`site-header ${headerSolid || location.pathname !== "/" ? "is-solid" : ""}`}>
         <nav className="container navbar navbar-expand-lg site-navbar" aria-label="Điều hướng chính">
           <Link className="navbar-brand brand-mark" to="/" onClick={() => setMenuOpen(false)}>
-            <span className="brand-symbol" aria-hidden="true">
-              <span>T</span>
-            </span>
+            <BrandMark />
             <span className="brand-copy">
-              <strong>Thư An</strong>
+              <strong>Thất Tịnh</strong>
               <small>Nhà sách trực tuyến</small>
             </span>
           </Link>
@@ -176,8 +175,8 @@ export function AppLayout() {
         <div className="container footer-grid">
           <div className="footer-brand">
             <Link className="brand-mark brand-mark--footer" to="/">
-              <span className="brand-symbol" aria-hidden="true"><span>T</span></span>
-              <span className="brand-copy"><strong>Thư An</strong><small>Nhà sách trực tuyến</small></span>
+              <BrandMark />
+              <span className="brand-copy"><strong>Thất Tịnh</strong><small>Nhà sách trực tuyến</small></span>
             </Link>
             <p>Những cuốn sách được chọn kỹ cho một đời sống nhiều chiều sâu.</p>
           </div>
@@ -197,7 +196,7 @@ export function AppLayout() {
           </div>
         </div>
         <div className="container footer-bottom">
-          <span>© 2026 Thư An Bookstore</span>
+          <span>© 2026 Thất Tịnh Bookstore</span>
           <span>Được xây dựng cho trải nghiệm mua sách an toàn.</span>
         </div>
       </footer>

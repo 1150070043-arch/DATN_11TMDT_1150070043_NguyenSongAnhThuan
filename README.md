@@ -1,4 +1,4 @@
-# BookGuard DATN — Thư An v1.6
+# BookGuard DATN — Thất Tịnh v1.6
 
 BookGuard là hệ thống bán sách trực tuyến đầy đủ nghiệp vụ, đồng thời là môi trường thực nghiệm cho đề tài **“Nghiên cứu, thiết kế và đánh giá mô hình bảo mật nhiều lớp cho ứng dụng web bán hàng trực tuyến”**.
 
@@ -145,6 +145,21 @@ SQL Server chỉ bind vào `127.0.0.1`, không mở ra mạng ngoài.
 Tất cả đều là tài khoản giả chỉ dùng trong môi trường nghiên cứu.
 Bộ seed có 36 đầu sách thuộc 6 thể loại và 60 đơn mẫu, nằm trong đúng phạm vi dữ liệu của đề cương.
 
+## File SQL Server để nộp hoặc mở trong SSMS
+
+File [database/BookGuard.sql](database/BookGuard.sql) tạo hai database
+`BookGuardBaseline` và `BookGuardSecure` trên SQL Server 2022. Mỗi database có
+25 bảng, lịch sử 8 migration và dữ liệu mẫu gồm 3 tài khoản, 6 thể loại,
+36 sách, 60 đơn hàng. Đây là dữ liệu mẫu của mã nguồn, không phải bản sao dữ liệu đang sử dụng.
+
+Trong SQL Server Management Studio: kết nối bằng tài khoản có quyền tạo database,
+chọn **File → Open → File**, mở `BookGuard.sql`, rồi nhấn **F5** để chạy toàn bộ file.
+Không cần bật SQLCMD mode. File dừng nếu một trong hai database đã tồn tại.
+File không tạo SQL login hoặc chứa mật khẩu kết nối; khi chạy Docker, các service
+`db-init` tự tạo tài khoản kết nối và cấp quyền cho ứng dụng.
+
+Docker đã tự tạo CSDL qua migration nên không cần import file này để chạy website.
+
 ## Reset dữ liệu
 
 ```bash
@@ -261,6 +276,7 @@ Mỗi lệnh dev nên chạy trong một terminal riêng.
 ## Tài liệu
 
 - [Bắt đầu ở đây](BAT_DAU_O_DAY.md)
+- [Kịch bản demo đồ án và 10 tình huống bảo mật](docs/kich-ban-demo.md)
 - [Kiến trúc hệ thống](docs/architecture.md)
 - [Đối chiếu mã nguồn với đề cương](docs/de-cuong-alignment.md)
 - [Mô hình đe dọa](docs/threat-model.md)

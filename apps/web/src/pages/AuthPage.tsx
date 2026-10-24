@@ -101,7 +101,7 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
         <div className="text-center max-w-sm">
           <div className="w-16 h-16 rounded-full bg-emerald-900/40 border border-emerald-700/40 flex items-center justify-center mx-auto mb-6 text-2xl text-emerald-400">✉</div>
           <h1 className="font-serif text-3xl text-[#ede7dc] mb-3">Kiểm tra hộp thư</h1>
-          <p className="text-sm text-[#7a6f64] mb-2">Thư An đã gửi email xác minh đến</p>
+          <p className="text-sm text-[#7a6f64] mb-2">Thất Tịnh đã gửi email xác minh đến</p>
           <p className="text-sm font-mono text-[#ede7dc] mb-7">{registeredEmail}</p>
           {import.meta.env.VITE_MAIL_UI_URL && (
             <a className="btn-gold block px-8 py-3 text-sm font-semibold mb-3" href={import.meta.env.VITE_MAIL_UI_URL} target="_blank" rel="noreferrer">Mở hộp thư kiểm thử</a>
@@ -124,7 +124,7 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
             <span className="font-serif font-bold text-[#0b0907] text-2xl">T</span>
           </Link>
           <h1 className="font-serif text-3xl text-[#ede7dc] mb-2">{mode === "login" ? "Đăng nhập" : "Tạo tài khoản"}</h1>
-          <p className="text-sm text-[#7a6f64]">{mode === "login" ? "Chào mừng trở lại với Thư An" : "Tham gia cộng đồng độc giả Thư An"}</p>
+          <p className="text-sm text-[#7a6f64]">{mode === "login" ? "Chào mừng trở lại với Thất Tịnh" : "Tham gia cộng đồng độc giả Thất Tịnh"}</p>
         </div>
 
         <div className="rounded-sm border border-[#22201d] bg-[#131110] p-7 md:p-8">

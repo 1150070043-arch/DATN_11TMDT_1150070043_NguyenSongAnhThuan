@@ -1,0 +1,135 @@
+/* Shared reading sizes. Keep the shop comfortable at normal browser zoom. */
+.storefront-shell {
+  --reading-body: 1.0625rem;
+  --reading-secondary: .9375rem;
+  --reading-caption: .875rem;
+  --text-xs: .9375rem;
+  --text-xs--line-height: 1.6;
+  --text-sm: 1rem;
+  --text-sm--line-height: 1.65;
+  --text-base: 1.0625rem;
+  --text-base--line-height: 1.7;
+  font-size: var(--reading-body);
+  line-height: 1.7;
+}
+.admin-shell {
+  --reading-body: 1rem;
+  --reading-secondary: .875rem;
+  --reading-caption: .8125rem;
+  --text-xs: .875rem;
+  --text-xs--line-height: 1.55;
+  --text-sm: 1rem;
+  --text-sm--line-height: 1.6;
+  --text-base: 1rem;
+  --text-base--line-height: 1.65;
+  font-size: var(--reading-body);
+}
+
+/* Cover small utility labels on account, purchase, footer and admin screens. */
+:is(.storefront-shell, .admin-shell) :is(
+  [class~="text-[8px]"], [class~="text-[9px]"], [class~="text-[10px]"]
+) { font-size: var(--reading-caption); line-height: 1.6; }
+:is(.storefront-shell, .admin-shell) :is(
+  [class~="text-[11px]"], [class~="text-[12px]"], [class~="text-[13px]"]
+) { font-size: var(--reading-secondary); line-height: 1.6; }
+.storefront-shell :is([class~="text-[14px]"], [class~="text-[15px]"]) { font-size: 1rem; line-height: 1.65; }
+.storefront-shell :is(input, textarea, select) { font-size: 1rem; line-height: 1.6; }
+.storefront-shell :is(input, textarea)::placeholder { font-size: inherit; }
+:is(.storefront-shell, .admin-shell) .badge { font-size: .875rem; line-height: 1.6; letter-spacing: .02em; padding: 5px 10px; }
+
+/* Product names, authors, categories and actions share the same reading scale. */
+.storefront-shell .book-category { font-size: .875rem; letter-spacing: .06em; line-height: 1.5; }
+.storefront-shell .book-title { font-size: 1.0625rem; line-height: 1.5; }
+.storefront-shell .book-author { font-size: .9375rem; line-height: 1.5; }
+.storefront-shell .book-price { font-size: 1.125rem; line-height: 1.5; }
+.storefront-shell :is(.book-add, .book-buy, .book-remove) { font-size: 1rem; line-height: 1.5; min-height: 48px; }
+.storefront-shell .storefront-footer-link { font-size: 1rem; }
+.storefront-shell .catalog-count { font-size: 1rem; }
+.storefront-shell .catalog-categories button { font-size: .9375rem; min-height: 48px; }
+.storefront-shell :is(.catalog-search input, .catalog-sort) { font-size: 1rem; min-height: 48px; }
+@media (min-width: 768px) and (max-width: 1023px) {
+  .storefront-shell .catalog-content { margin-top: 8px; }
+}
+.storefront-shell .hero-eyebrow { font-size: .875rem; letter-spacing: .12em; }
+.storefront-shell .hero-copy p { font-size: 1.0625rem; line-height: 1.7; min-height: 1.7em; }
+
+/* About page, home reading journey and contact introduction. */
+.storefront-shell .story-kicker { font-size: .875rem; line-height: 1.7; letter-spacing: .12em; }
+.storefront-shell :is(.story-intro .story-secondary, .manifesto-layout p, .section-heading > p,
+  .journey-panel > p, .contact-intro > p, .contact-faq > div > p) { font-size: 1.0625rem; line-height: 1.85; }
+.storefront-shell :is(.value-card p, .story-button, .story-link) { font-size: 1rem; }
+.storefront-shell .photo-caption { font-size: .9375rem; }
+.storefront-shell .story-note small { font-size: .8125rem; letter-spacing: .1em; }
+.storefront-shell :is(.journey-steps button > span, .journey-panel .story-kicker) { font-size: .875rem; }
+.storefront-shell .journey-steps button b { font-size: 1rem; line-height: 1.5; }
+
+/* Contact text used to be 10–13 px, including instructions and field labels. */
+.storefront-shell .contact-note p { font-size: 1.0625rem; line-height: 1.85; }
+.storefront-shell .contact-shortcuts a { font-size: 1.0625rem; line-height: 1.6; }
+.storefront-shell .contact-shortcuts small { font-size: .9375rem; line-height: 1.7; }
+.storefront-shell .contact-privacy { font-size: .9375rem; line-height: 1.8; }
+.storefront-shell .contact-steps li { font-size: .9375rem; line-height: 1.5; min-width: 0; }
+.storefront-shell .contact-steps li > span { width: 32px; height: 32px; font-size: .875rem; }
+.storefront-shell .contact-topic { min-height: 88px; padding: 18px 20px; align-items: flex-start; }
+.storefront-shell .contact-topic > span:nth-of-type(2) { flex: 1; min-width: 0; }
+.storefront-shell .topic-number { font-size: .875rem; line-height: 1.9; }
+.storefront-shell .contact-topic b { font-size: 1.125rem; line-height: 1.5; }
+.storefront-shell .contact-topic small { font-size: .9375rem; line-height: 1.7; }
+.storefront-shell .topic-check { flex-shrink: 0; margin-top: 2px; }
+.storefront-shell .contact-form-actions { flex-wrap: wrap; }
+.storefront-shell .contact-step-hint { font-size: .875rem; max-width: 190px; }
+.storefront-shell .contact-fields label { font-size: 1rem; line-height: 1.6; }
+.storefront-shell .contact-fields :is(input, textarea) { font-size: 1.0625rem; line-height: 1.65; min-height: 50px; }
+.storefront-shell .field-hint { font-size: .875rem; line-height: 1.6; flex-wrap: wrap; }
+.storefront-shell .contact-review dl > div { font-size: 1rem; line-height: 1.7; }
+.storefront-shell .contact-message-preview { font-size: 1.0625rem; line-height: 1.8; }
+.storefront-shell :is(.contact-review > p, .contact-error, .contact-reference span) { font-size: .9375rem; line-height: 1.8; }
+.storefront-shell .contact-success p { font-size: 1.0625rem; }
+.storefront-shell .contact-reference code { font-size: 1rem; }
+.storefront-shell .faq-list summary { font-size: 1.0625rem; line-height: 1.7; }
+.storefront-shell .faq-number { font-size: .875rem; flex-shrink: 0; }
+.storefront-shell .faq-list details p { font-size: 1rem; line-height: 1.85; }
+
+/* Book metadata is useful reading content, rather than decorative microcopy. */
+.storefront-shell :is(.detail-zoom-hint, .detail-facts span, .detail-author-note > span) { font-size: .875rem; }
+.storefront-shell :is(.detail-facts strong, .detail-shortcuts button, .detail-help) { font-size: 1rem; line-height: 1.7; }
+.storefront-shell .detail-shortcuts { flex-wrap: wrap; gap: 8px 24px; }
+.storefront-shell .detail-shortcuts button { min-height: 48px; }
+.storefront-shell .detail-help span { white-space: normal; }
+.storefront-shell .detail-author-note strong { font-size: 1.0625rem; }
+.storefront-shell .detail-author-note p { font-size: 1rem; }
+.book-lightbox-dialog h2 { font-size: 1rem; }
+.book-lightbox-dialog button { font-size: 1rem; }
+
+/* Legacy account forms and order dialogs can be mounted outside the shop root. */
+.legacy-ui:is(.reference-auth, .reference-dialogs) :is(.form-control, .form-select, .btn) { font-size: 1rem; line-height: 1.6; }
+.legacy-ui:is(.reference-auth, .reference-dialogs) .form-label { font-size: 1rem; line-height: 1.6; }
+.legacy-ui:is(.reference-auth, .reference-dialogs) :is(.form-text, .auth-switch, .eyebrow) { font-size: .9375rem; line-height: 1.7; }
+.legacy-ui.reference-dialogs .confirm-dialog p { font-size: 1rem !important; line-height: 1.7; }
+.legacy-ui.reference-dialogs .order-facts div span { font-size: .875rem; }
+.legacy-ui.reference-dialogs :is(.order-facts div strong, .email-delivery-row strong) { font-size: 1rem; }
+.legacy-ui.reference-dialogs :is(.email-delivery-row small, .email-delivery-panel .eyebrow) { font-size: .875rem; }
+
+@media (max-width: 767px) {
+  .storefront-shell .reference-order-row > .badge { grid-column: 1 / -1; justify-self: start; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+  .storefront-shell .reference-order-row > :last-child { grid-column: 1 / -1; }
+  .storefront-shell .hero-copy p { font-size: 1rem; min-height: 3.4em; }
+  .storefront-shell .journey-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .storefront-shell .journey-steps button { min-height: 88px; padding: 14px 10px; }
+  .storefront-shell .journey-steps button b { font-size: .9375rem; }
+  .storefront-shell .contact-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .storefront-shell .contact-steps li { flex-direction: column; text-align: center; gap: 8px; font-size: .9375rem; }
+  .storefront-shell .contact-topic { padding: 16px 14px; gap: 10px; }
+  .storefront-shell .contact-topic b { font-size: 1.0625rem; }
+}
+@media (max-width: 480px) {
+  .storefront-shell .contact-form-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .storefront-shell .contact-step-hint { max-width: none; }
+  .storefront-shell .contact-form-actions .story-button { width: 100%; }
+  .storefront-shell .contact-review dl > div { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .storefront-shell .detail-facts { gap: 18px 24px; }
+  .book-lightbox-dialog header { flex-wrap: wrap; }
+}
+@media (max-width: 359px) {
+  .storefront-shell :is(.book-add, .book-buy, .book-remove) { min-height: 74px; }
+}

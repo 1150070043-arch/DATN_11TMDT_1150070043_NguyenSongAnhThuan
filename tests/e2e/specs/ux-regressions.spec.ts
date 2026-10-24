@@ -516,13 +516,13 @@ async function contactDraft(page: Page) {
 test('contact reviews the message before sending, prevents duplicate sends and shows only a confirmed reference', async ({ page }) => {
   await fixtures(page);
   const writes: unknown[] = [];
-  await page.route('**/api/contact', async route => { writes.push(route.request().postDataJSON()); await route.fulfill({ status: 201, json: { data: { reference: 'TA-FIXTURE12345' } } }); });
+  await page.route('**/api/contact', async route => { writes.push(route.request().postDataJSON()); await route.fulfill({ status: 201, json: { data: { reference: 'TT-FIXTURE12345' } } }); });
   await contactDraft(page);
   expect(writes).toHaveLength(0);
   await expect(page.locator('.contact-review')).toContainText('Đơn hàng');
   await page.getByRole('button', { name: 'Gửi lời nhắn', exact: true }).evaluate(button => { (button as HTMLButtonElement).click(); (button as HTMLButtonElement).click(); });
   await expect(page.getByRole('heading', { name: 'Lời nhắn đã được gửi.', exact: true })).toBeVisible();
-  await expect(page.getByText('TA-FIXTURE12345', { exact: true })).toBeVisible();
+  await expect(page.getByText('TT-FIXTURE12345', { exact: true })).toBeVisible();
   expect(writes).toEqual([{ name: 'Độc giả kiểm thử', email: 'reader@example.test', topic: 'orders', message: 'Tôi muốn hỏi về trạng thái đơn hàng #12.' }]);
 });
 

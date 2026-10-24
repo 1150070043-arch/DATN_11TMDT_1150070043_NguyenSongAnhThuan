@@ -183,7 +183,7 @@ test('carousel autoplays while hovered and resumes after keyboard interaction wi
   await expect(hero.getByRole('button', { name: 'Slide 3', exact: true })).toHaveAttribute('aria-current', 'true');
   await page.keyboard.press('Enter');
   await expect(hero.getByRole('button', { name: 'Slide 1', exact: true })).toHaveAttribute('aria-current', 'true');
-  await page.getByRole('button', { name: 'Thư An — Trang chủ', exact: true }).focus(); await page.mouse.move(1, 1);
+  await page.getByRole('button', { name: 'Thất Tịnh — Trang chủ', exact: true }).focus(); await page.mouse.move(1, 1);
   await expect(hero.locator('.hero-copy')).toHaveAttribute('aria-live', 'off');
   await advanceTo(2); await expect(hero.getByRole('button', { name: /Phát slide|Dừng slide/ })).toHaveCount(0);
 });

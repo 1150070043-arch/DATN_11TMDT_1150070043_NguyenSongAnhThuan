@@ -32,7 +32,7 @@ export function HeroSlider({ onExplore }: { onExplore: () => void }) {
     onKeyDown={event => { if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') { event.preventDefault(); move(active + (event.key === 'ArrowRight' ? 1 : -1)); } }}>
     <div className="hero-panel">
       <div key={slide.id} className="hero-copy" aria-live={playing ? 'off' : 'polite'} aria-atomic="true">
-        <span className="hero-eyebrow">Nhà sách Thư An</span>
+        <span className="hero-eyebrow">Nhà sách Thất Tịnh</span>
         <h1><span>{slide.titleA}</span>{' '}<span>{slide.titleB}</span></h1>
         <p>{slide.sub}</p>
         <button onClick={() => onExplore()} className="hero-cta">{slide.cta}<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></button>

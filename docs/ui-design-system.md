@@ -1,4 +1,4 @@
-# Hệ thống thiết kế giao diện Thư An
+# Hệ thống thiết kế giao diện Thất Tịnh
 
 ## Định hướng
 

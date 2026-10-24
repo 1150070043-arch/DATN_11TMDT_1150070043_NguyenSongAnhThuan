@@ -1,4 +1,4 @@
-# Đối chiếu giao diện Thư An
+# Đối chiếu giao diện Thất Tịnh
 
 Mở `index.html` để xem ảnh mẫu ZIP và ứng dụng cạnh nhau.
 

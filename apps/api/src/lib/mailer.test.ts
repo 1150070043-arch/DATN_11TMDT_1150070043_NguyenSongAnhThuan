@@ -53,7 +53,7 @@ test("delivers a multipart message through a real SMTP conversation", async () =
       user: "",
       password: "",
       fromAddress: "no-reply@bookguard.local",
-      fromName: "Thư An Bookstore"
+      fromName: "Thất Tịnh Bookstore"
     };
     await sendMail(
       {

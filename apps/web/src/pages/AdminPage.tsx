@@ -422,7 +422,7 @@ export function AdminPage() {
             <div className="flex items-start justify-between pb-3.5 mb-4 border-b border-slate-800">
               <div>
                 <div className="text-xs tracking-wider text-amber-400 uppercase font-mono font-bold mb-1">
-                  Kho sách Thư An · Cổng quản trị
+                  Kho sách Thất Tịnh · Cổng quản trị
                 </div>
                 <h2 className="text-2xl font-bold text-white">
                   {editingBookId ? "Chỉnh sửa thông tin sách" : "Thêm đầu sách mới"}

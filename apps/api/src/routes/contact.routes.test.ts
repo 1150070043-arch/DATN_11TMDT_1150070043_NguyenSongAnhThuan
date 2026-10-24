@@ -36,7 +36,7 @@ test('contact sends only to the configured administrator, escapes HTML and retur
   assert.equal(response.status, 201);
   assert.equal(response.headers.get('cache-control'), 'no-store');
   const result = await response.json() as { data: { reference: string } };
-  assert.match(result.data.reference, /^TA-[A-F0-9]{12}$/);
+  assert.match(result.data.reference, /^TT-[A-F0-9]{12}$/);
   assert.equal(f.delivered.length, 1);
   const mail = f.delivered[0];
   assert.ok(mail);

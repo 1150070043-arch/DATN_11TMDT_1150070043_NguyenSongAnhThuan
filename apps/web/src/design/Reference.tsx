@@ -9,6 +9,7 @@ import type { Review } from '../types'
 import { coverImage } from '../lib/cover-images'
 import { RuntimeCtx } from './RuntimeData'
 import { BookGallery, ReadingJourney } from './StorefrontExperience'
+import { BrandMark } from '../components/BrandMark'
 
 export const ThemeCtx = createContext<'dark' | 'light'>('dark')
 
@@ -374,7 +375,7 @@ export function EditorialSection() {
           </blockquote>
           <div className="flex items-center justify-center gap-3">
             <div className="w-8 h-px bg-[#c8a94d]/50" />
-            <span className="text-xs tracking-[0.25em] text-[#7a6f64] uppercase font-mono">Thư An · Biên soạn 2026</span>
+            <span className="text-xs tracking-[0.25em] text-[#7a6f64] uppercase font-mono">Thất Tịnh · Biên soạn 2026</span>
             <div className="w-8 h-px bg-[#c8a94d]/50" />
           </div>
         </div>
@@ -450,12 +451,10 @@ export function Footer({ setPage }: { setPage: (p: Page) => void }) {
     <footer className={`border-t ${light ? 'border-[#d5cfc4] bg-[#ede4d4]' : 'border-[#22201d] bg-[#0a0806]'}`}>
       <div className="max-w-7xl mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-3 gap-12">
         <div>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 rounded-sm bg-[#c8a94d] flex items-center justify-center">
-              <span className="font-display font-bold text-[#0b0907] text-base">T</span>
-            </div>
+          <div className="storefront-footer-brand flex items-center gap-3 mb-4">
+            <BrandMark />
             <div>
-              <div className={`font-display font-semibold text-sm ${light ? 'text-[#1a1410]' : 'text-[#ede7dc]'}`}>Thư An</div>
+              <div className={`storefront-footer-name font-display font-semibold ${light ? 'text-[#1a1410]' : 'text-[#ede7dc]'}`}>Thất Tịnh</div>
               <div className="text-[9px] tracking-[0.2em] text-[#7a6f64] uppercase">Nhà sách trực tuyến</div>
             </div>
           </div>
@@ -465,7 +464,7 @@ export function Footer({ setPage }: { setPage: (p: Page) => void }) {
           <div className="text-[10px] tracking-[0.2em] text-[#c8a94d] uppercase font-mono mb-5">Khám phá</div>
           <ul className="space-y-3">
             {[['catalog', 'Danh mục sách'], ['about', 'Về chúng tôi'], ['contact', 'Liên hệ'], ['wishlist', 'Sách yêu thích'], ['orders', 'Đơn hàng của tôi'], ['settings', 'Tài khoản']].map(([p, l]) => (
-              <li key={l}><button onClick={() => setPage(p as Page)} className={`text-sm transition-colors ${light ? 'text-[#6b5e50] hover:text-[#1a1410]' : 'text-[#7a6f64] hover:text-[#ede7dc]'}`}>{l}</button></li>
+              <li key={l}><button onClick={() => setPage(p as Page)} className={`storefront-footer-link transition-colors ${light ? 'text-[#6b5e50] hover:text-[#1a1410]' : 'text-[#7a6f64] hover:text-[#ede7dc]'}`}>{l}</button></li>
             ))}
           </ul>
         </div>
@@ -476,7 +475,7 @@ export function Footer({ setPage }: { setPage: (p: Page) => void }) {
         </div>
       </div>
       <div className={`border-t px-6 py-5 max-w-7xl mx-auto flex items-center justify-between text-xs text-[#7a6f64] ${light ? 'border-[#d5cfc4]' : 'border-[#22201d]'}`}>
-        <span>© 2026 Thư An Bookstore</span>
+        <span>© 2026 Thất Tịnh Bookstore</span>
         <span>Được xây dựng cho trải nghiệm mua sách an toàn</span>
       </div>
     </footer>
@@ -753,7 +752,7 @@ export function BookDetailPage({
 
               {/* Description */}
               <p className="text-[#b5a99b] text-base leading-relaxed mb-6 max-w-lg">
-                {book.description || 'Giới thiệu chi tiết đang được cập nhật. Bạn có thể xem thông tin sách và gửi câu hỏi cho Thư An.'}
+                {book.description || 'Giới thiệu chi tiết đang được cập nhật. Bạn có thể xem thông tin sách và gửi câu hỏi cho Thất Tịnh.'}
               </p>
               <div className="detail-facts"><div><span>Thể loại</span><strong>{book.category}</strong></div><div><span>Tình trạng</span><strong>{book.stock > 0 ? 'Sẵn sàng đặt sách' : 'Tạm hết hàng'}</strong></div></div>
               <div className="detail-shortcuts"><button type="button" onClick={() => document.getElementById('book-description')?.scrollIntoView({ block: 'start' })}>Đọc giới thiệu <span aria-hidden="true">↘</span></button><button type="button" onClick={() => document.getElementById('book-reviews')?.scrollIntoView({ block: 'start' })}>Xem đánh giá <span aria-hidden="true">↘</span></button></div>
@@ -820,7 +819,7 @@ export function BookDetailPage({
               </div>
 
               <button type="button" disabled={adding || cartBlocked || book.stock < 1} onClick={() => void handleAdd(true)} className="book-buy btn-gold text-[#0b0907] font-semibold rounded-sm disabled:opacity-60 max-w-lg mb-6 detail-buy-now">{buying ? 'Đang xử lý…' : 'Mua ngay'}</button>
-              <button type="button" onClick={() => navigate('/contact?topic=books')} className="detail-help">Cần biết thêm về cuốn sách? <span>Hỏi Thư An ↗</span></button>
+              <button type="button" onClick={() => navigate('/contact?topic=books')} className="detail-help">Cần biết thêm về cuốn sách? <span>Hỏi Thất Tịnh ↗</span></button>
 
             </div>
           </div>

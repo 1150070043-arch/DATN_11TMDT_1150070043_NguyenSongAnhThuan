@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import postcss from "postcss";
@@ -49,14 +49,25 @@ function trimBootstrap() {
   };
 }
 
-export default defineConfig({
-  plugins: [trimBootstrap(), coverImages(), react(), tailwindcss()],
-  server: {
-    host: "127.0.0.1",
-    strictPort: true
-  },
-  build: {
-    sourcemap: false,
-    outDir: "dist"
-  }
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "VITE_");
+  const apiTarget = env.VITE_API_URL || (env.VITE_SECURITY_MODE === "baseline"
+    ? "http://127.0.0.1:4001"
+    : "http://127.0.0.1:4002");
+
+  return {
+    plugins: [trimBootstrap(), coverImages(), react(), tailwindcss()],
+    server: {
+      host: "127.0.0.1",
+      strictPort: true,
+      // API navigation must reach Express instead of the React SPA fallback.
+      proxy: {
+        "^/api(?:/|$)": { target: apiTarget }
+      }
+    },
+    build: {
+      sourcemap: false,
+      outDir: "dist"
+    }
+  };
 });

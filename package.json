@@ -11,6 +11,8 @@
     "tests/e2e"
   ],
   "scripts": {
+    "demo:security": "node scripts/security-demo-server.mjs",
+    "test:security:business": "npm run test --workspace @bookguard/e2e-tests -- --config security-business.config.ts",
     "up:secure": "docker compose up -d --build web-secure",
     "up:baseline": "docker compose up -d --build web-baseline",
     "stop:secure": "docker compose stop web-secure api-secure mailpit",
@@ -48,6 +50,7 @@
     "test:payments:ux": "npm run test --workspace @bookguard/e2e-tests -- --config payments-ux.config.ts",
     "test:stock-holds": "npm run test:stock-holds --workspace @bookguard/functional-tests",
     "test:operations": "node --test scripts/operations.test.mjs",
+    "test:web-api-proxy": "node --test scripts/web-api-proxy.test.mjs",
     "db:backup:production": "node --env-file=.env.production scripts/db-backup.mjs --production",
     "db:backup:offsite:production": "node --env-file=.env.production scripts/db-backup-offsite.mjs --production",
     "db:restore:drill": "node --env-file=.env scripts/db-restore-drill.mjs",

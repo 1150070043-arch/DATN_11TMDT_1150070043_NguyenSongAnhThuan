@@ -220,26 +220,30 @@ const cases: TestCase[] = [
     reference: "OWASP Top 10 A05:2021",
     run: async (baseUrl) => {
       const session = new HttpSession(baseUrl);
+      await session.login();
       const response = await session.request(
-        "/api/health",
+        "/api/orders",
         {},
         { origin: "http://evil.example" }
       );
       const allowOrigin = response.headers.get("access-control-allow-origin");
       const poweredBy = response.headers.get("x-powered-by");
+      const allowCredentials = response.headers.get("access-control-allow-credentials");
+      const orders = (response.body as { data?: unknown }).data;
+      if (!Array.isArray(orders) || orders.length === 0) throw new Error("TC08 requires an authenticated customer with existing orders.");
       const protectedResult = allowOrigin !== "http://evil.example" && !poweredBy;
       return {
         protected: protectedResult,
         status: response.status,
         requestId: response.headers.get("x-request-id") ?? undefined,
-        evidence: `allow-origin=${allowOrigin ?? "none"}, x-powered-by=${poweredBy ?? "none"}`
+        evidence: `authenticated order count=${orders.length}, allow-origin=${allowOrigin ?? "none"}, allow-credentials=${allowCredentials ?? "none"}, x-powered-by=${poweredBy ?? "none"}; browser impact is verified separately by test:security:business`
       };
     }
   },
   {
     id: "TC09",
     name: "Sensitive Data Exposure",
-    reference: "OWASP Top 10 A02:2021",
+    reference: "OWASP API3:2023",
     run: async (baseUrl) => {
       const session = new HttpSession(baseUrl);
       await session.login();

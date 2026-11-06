@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="vi">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>TC09 — Kiểm tra dữ liệu hồ sơ</title><link rel="stylesheet" href="/lab/demo.css"><script src="/lab/profile-exposure.js" defer></script></head>
+<body><main>
+  <p class="eyebrow">BookGuard · Anh Thuan · TC09</p>
+  <h1>Kiểm tra dữ liệu hồ sơ</h1>
+  <p>Đăng nhập khách rồi mở <a href="/profile" target="_blank" rel="noopener">Hồ sơ cá nhân</a>. Bấm nút bên dưới để đọc lại <code>GET /api/auth/me</code> trên chính website này.</p>
+  <p>Phép thử hiển thị tên trường và phân loại; không hiển thị giá trị mật khẩu, hash hay token. Response gốc vẫn có thể xem trong DevTools → Network.</p>
+  <button id="inspect" type="button">Kiểm tra dữ liệu API</button>
+  <p id="status" role="status">Chưa kiểm tra.</p>
+  <p id="metadata"></p>
+  <div class="scroll"><table id="fields" hidden><thead><tr><th>Trường API trả về</th><th>Phân loại</th></tr></thead><tbody></tbody></table></div>
+  <p>API trả HTTP 200 ở cả hai bản. Kết luận dựa trên các trường trong response, không dựa riêng vào status hay phần giao diện đang hiển thị.</p>
+</main></body></html>

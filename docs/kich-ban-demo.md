@@ -173,13 +173,25 @@ Secure có thể trả `422` nếu gửi nội dung chỉ có thẻ và sau khi 
 
 ### TC06 — Khách hàng gọi API quản trị
 
+**Mở JSON trực tiếp trên trình duyệt:** đăng nhập tài khoản khách ở website tương ứng, rồi mở API trong cùng browser profile và cùng hostname `localhost`:
+
+| Bản | Link API danh sách người dùng | Kết quả cần quan sát bằng phiên khách |
+| --- | --- | --- |
+| Baseline | [http://localhost:5173/api/admin/users](http://localhost:5173/api/admin/users) | `200`, JSON có mảng `data` chứa danh sách người dùng |
+| Secure | [http://localhost:5174/api/admin/users](http://localhost:5174/api/admin/users) | `403`, JSON báo không đủ quyền |
+
+Website chuyển tiếp `/api/...` tới API tương ứng: `5173` → Baseline, `5174` → Secure. Đường dẫn phải kết thúc bằng `/users`, không có dấu chấm (`/users.`). Nếu API trả `401`, đăng nhập lại ở website tương ứng rồi mở lại link; Baseline vẫn yêu cầu phiên đăng nhập.
+
+Nếu đang dùng bản cũ và link API hiện trang 404 của giao diện, cần cập nhật cấu hình: với Docker, chạy `docker compose up -d --build web-baseline web-secure`; với Vite, khởi động lại hai lệnh `npm run dev:web:baseline` và `npm run dev:web:secure`.
+
+Đây là demo **phân quyền (TC06)**. Demo **dò mật khẩu (TC05)** thực hiện tại `/login`, không dùng API danh sách người dùng.
+
 1. Đăng nhập bằng tài khoản khách ở cả hai bản.
 2. Không chỉ thử mở `/admin`: frontend có thể chặn điều hướng trên cả hai bản. Cần gọi API trực tiếp bằng phiên khách.
-3. Trong Console của trang Baseline hoặc Secure, chạy đoạn sau. Địa chỉ được chọn theo đúng cổng của trang đang mở:
+3. Trong Console của trang Baseline hoặc Secure, chạy đoạn sau trên chính cổng của trang đang mở:
 
 ```javascript
-const adminApi = location.port === '5173' ? 'http://localhost:4001' : 'http://localhost:4002';
-const adminResponse = await fetch(`${adminApi}/api/admin/users`, { credentials: 'include' });
+const adminResponse = await fetch('/api/admin/users', { credentials: 'include' });
 const adminBody = await adminResponse.json();
 console.log({ status: adminResponse.status, code: adminBody.error?.code, userCount: Array.isArray(adminBody.data) ? adminBody.data.length : undefined });
 ```
@@ -242,6 +254,8 @@ Nếu hội đồng muốn thao tác tay: dùng DevTools → Application/Storage
 
 ### TC05 — Giới hạn thử đăng nhập sai
 
+Mở [Baseline /login](http://localhost:5173/login) và [Secure /login](http://localhost:5174/login). Nhập email theo hướng dẫn dưới đây, mật khẩu sai ví dụ `pass_sai_123`, rồi bấm **Đăng nhập** từng lần sau khi yêu cầu trước đã hoàn tất. Xem request `POST /api/auth/login` trong DevTools → Network để đối chiếu status và mã lỗi.
+
 **Thao tác:** chọn email lab không tồn tại, duy nhất cho lượt demo, ví dụ `demo-lock-<timestamp>@bookguard.local`. Giữ nguyên email đó và thử sai mật khẩu 7 lần ở mỗi bản; xem Network.
 
 **Cần quan sát:** Baseline vẫn trả `401`; Secure bắt đầu giới hạn sau 5 lần thất bại trong cửa sổ 15 phút, các lần sau trả `429`, mã `LOGIN_RATE_LIMITED`. Không dùng tài khoản admin/khách đang cần đăng nhập cho phần khác.
@@ -249,6 +263,10 @@ Nếu hội đồng muốn thao tác tay: dùng DevTools → Application/Storage
 **Giải thích:** hạn chế số lần đoán mật khẩu theo IP và email làm giảm khả năng thử liên tục. Chạy bài này cuối phần tương tác. `429` từ giới hạn API chung với mã khác chưa đủ làm bằng chứng cho TC05.
 
 ### TC08 — CORS và lộ thông tin framework
+
+**Demo nghiệp vụ hoàn chỉnh:** [Hướng dẫn tester TC08 và TC09](huong-dan-test-tc08-tc09.md), mục 1–2. Chạy `npm run demo:security`, đăng nhập khách và kiểm tra `/orders` ở hai bản, rồi mở `http://localhost:5500` trong cùng browser profile. Bấm **Nhận ưu đãi qua Baseline** để quan sát trang giả đọc được lịch sử đơn thật; bấm **Nhận ưu đãi qua Secure** để quan sát browser không cho đọc response. Phải xác nhận phiên hợp lệ và request HTTP 200 trước khi kết luận CORS; lỗi mạng/401 chưa đủ bằng chứng.
+
+Phần PowerShell sau là kiểm tra header bổ sung; không thay cho demo browser:
 
 Chạy trong PowerShell, không cần đăng nhập:
 
@@ -269,6 +287,8 @@ foreach ($port in 4001, 4002) {
 **Giải thích:** browser chỉ cho mã ở origin phù hợp đọc response. CORS không thay kiểm tra quyền và không ngăn một HTTP client ngoài browser gửi request.
 
 ### TC09 — DTO hồ sơ làm lộ trường nhạy cảm
+
+**Demo nghiệp vụ hoàn chỉnh:** [Hướng dẫn tester TC08 và TC09](huong-dan-test-tc08-tc09.md), mục 1 và 3. Sau khi đăng nhập khách, mở `/profile` để cho thấy hồ sơ hoạt động, rồi mở `/lab/profile-exposure.html` trên từng website 5173/5174. Bấm **Kiểm tra dữ liệu API**: Baseline có `PasswordSecret`; Secure chỉ có DTO hồ sơ. Trang helper chỉ hiển thị tên trường và phân loại, không hiện giá trị credential; chỉ chạy trên localhost và database audit.
 
 Đăng nhập khách, mở response `GET /api/auth/me` trong Network hoặc chạy:
 

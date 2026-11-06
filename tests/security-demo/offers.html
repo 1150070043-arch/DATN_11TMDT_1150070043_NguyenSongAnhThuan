@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="vi">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>TC08 — Ưu đãi sách giả lập</title><link rel="stylesheet" href="/demo.css"><script src="/offers.js" defer></script></head>
+<body><main>
+  <p class="eyebrow">BookGuard · Anh Thuan · TC08</p>
+  <h1>Nhận ưu đãi sách</h1>
+  <p>Trang ưu đãi giả lập tại <strong>localhost:5500</strong>. Khi bấm nhận ưu đãi, trang thử đọc lịch sử đơn hàng bằng phiên BookGuard đang mở trong cùng browser profile.</p>
+  <p>Đăng nhập khách tại từng website và kiểm tra <strong>/orders</strong> trước khi thử. Trang này không yêu cầu nhập mật khẩu và không lưu kết quả lên máy chủ.</p>
+  <p id="environment" role="status">Đang kiểm tra hai API audit…</p>
+  <button id="refresh" type="button">Kiểm tra lại môi trường</button>
+  <div class="columns">
+    <section><h2>Baseline</h2><p><a href="http://localhost:5173/orders" target="_blank" rel="noopener">Mở đơn hàng Baseline</a></p><button id="baseline" disabled>Nhận ưu đãi qua Baseline</button><p id="baseline-status" role="status">Chưa thử.</p><div id="baseline-result"></div></section>
+    <section><h2>Secure</h2><p><a href="http://localhost:5174/orders" target="_blank" rel="noopener">Mở đơn hàng Secure</a></p><button id="secure" disabled>Nhận ưu đãi qua Secure</button><p id="secure-status" role="status">Chưa thử.</p><div id="secure-result"></div></section>
+  </div>
+  <p>Secure có thể trả HTTP 200 ở Network nhưng JavaScript của trang này không đọc được response. Lỗi fetch đơn lẻ chưa đủ chứng minh CORS: cần xác nhận API hoạt động, phiên hợp lệ và lỗi CORS trong Console.</p>
+  <p>Đây là phép thử đọc dữ liệu, không thay đổi đơn hàng. Khác port tạo khác origin; cùng <code>http://localhost</code> giữ cùng site để cookie SameSite=Lax được gửi.</p>
+</main></body></html>

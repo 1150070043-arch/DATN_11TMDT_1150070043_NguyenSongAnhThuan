@@ -170,6 +170,8 @@ Lệnh này đưa cả Baseline và Secure về cùng bộ dữ liệu gốc. N�
 
 ## Chạy 10 bài kiểm thử bảo mật
 
+Để demo riêng **TC08 — trang ưu đãi giả đọc lịch sử mua hàng** và **TC09 — API hồ sơ trả dư trường nhạy cảm**, xem [hướng dẫn chi tiết cho tester](docs/huong-dan-test-tc08-tc09.md). Có trang tương tác tại port 5500, bảng kiểm tra trường hồ sơ trên website và lệnh `npm run test:security:business` kiểm chứng bằng trình duyệt thật trên database audit.
+
 Sau khi hai API đã healthy:
 
 ```bash
